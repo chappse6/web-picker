@@ -269,4 +269,21 @@ describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
       await server.close();
     }
   });
+
+  it('answers CORS preflight (OPTIONS) with 204 and allow headers', async () => {
+    const state = createState();
+    const server = createServer({ state, version: '0.1.0', token: 'x' });
+    const { port } = await server.listen(0);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, {
+        method: 'OPTIONS',
+        headers: { origin: 'http://localhost:3000' },
+      });
+      expect(res.status).toBe(204);
+      expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:3000');
+      expect(res.headers.get('access-control-allow-methods')).toContain('POST');
+    } finally {
+      await server.close();
+    }
+  });
 });

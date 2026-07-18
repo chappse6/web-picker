@@ -95,6 +95,26 @@ describe('captureElement — sensitive value protection', () => {
   });
 });
 
+describe('decoy disambiguation (the moat)', () => {
+  it('distinguishes three same-label buttons by landmark, not label', () => {
+    document.body.innerHTML = `
+      <header><button id="h" class="btn">저장</button></header>
+      <main><button id="m" class="btn">저장</button></main>
+      <footer><button id="f" class="btn">저장</button></footer>`;
+    const h = captureElement(document.getElementById('h')!);
+    const m = captureElement(document.getElementById('m')!);
+    const f = captureElement(document.getElementById('f')!);
+
+    // same visible label — a naive matcher cannot tell them apart
+    expect([h, m, f].map((c) => c.visibleLabel)).toEqual(['저장', '저장', '저장']);
+    // but landmark + selector uniquely identify each
+    expect(h.landmark).toBe('header');
+    expect(m.landmark).toBe('main');
+    expect(f.landmark).toBe('footer');
+    expect(new Set([h.selector, m.selector, f.selector]).size).toBe(3);
+  });
+});
+
 describe('capturePayload', () => {
   it('assembles a full payload with the user question and source', () => {
     const el = document.getElementById('save-btn')!;

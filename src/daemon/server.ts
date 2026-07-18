@@ -73,6 +73,20 @@ export function createServer(deps: ServerDeps): RunningServer {
   const server = http.createServer(async (rawReq, rawRes) => {
     try {
       const url = new URL(rawReq.url ?? '/', `http://${host}`);
+      const corsHeaders = {
+        'access-control-allow-origin': (Array.isArray(rawReq.headers.origin) ? rawReq.headers.origin[0] : rawReq.headers.origin) ?? '*',
+        'access-control-allow-headers': 'content-type, x-web-picker-token',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+      };
+
+      // CORS preflight: the content script POSTs JSON, which the browser
+      // preflights. Answer it before routing.
+      if (rawReq.method === 'OPTIONS') {
+        rawRes.writeHead(204, corsHeaders);
+        rawRes.end();
+        return;
+      }
+
       const apiReq: ApiRequest = {
         method: rawReq.method ?? 'GET',
         path: url.pathname,
@@ -82,14 +96,9 @@ export function createServer(deps: ServerDeps): RunningServer {
       const handler: ApiHandler = url.pathname.startsWith('/ipc') ? ipcApi : extensionApi;
       const res = await handler(apiReq);
       const payload = JSON.stringify(res.body ?? {});
-      rawRes.writeHead(res.status, {
-        'content-type': 'application/json',
-        // Reflect the allowed origin back so the extension's fetch is not blocked
-        // by CORS; the handler already rejects disallowed origins with 403.
-        'access-control-allow-origin': apiReq.headers.origin ?? '*',
-        'access-control-allow-headers': 'content-type, x-web-picker-token',
-        'access-control-allow-methods': 'GET, POST, OPTIONS',
-      });
+      // Reflect the request origin so the content script's fetch is not blocked
+      // by CORS; the handler already rejects disallowed origins with 403.
+      rawRes.writeHead(res.status, { 'content-type': 'application/json', ...corsHeaders });
       rawRes.end(payload);
     } catch (err) {
       logger.error('request handling failed', err);

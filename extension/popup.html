@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font: 13px/1.5 system-ui, sans-serif; width: 260px; margin: 0; padding: 12px; }
+      h1 { font-size: 14px; margin: 0 0 8px; }
+      .row { margin: 6px 0; }
+      .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #9ca3af; }
+      .dot.ok { background: #16a34a; }
+      .dot.err { background: #dc2626; }
+      code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+    </style>
+  </head>
+  <body>
+    <h1>웹픽커</h1>
+    <div class="row"><span class="dot" id="daemon-dot"></span><span id="daemon-status">데몬 확인 중…</span></div>
+    <div class="row">localhost 페이지에서 우측 하단 <b>픽</b> 버튼을 누르세요.</div>
+    <div class="row" style="color:#6b7280">데몬 미실행 시 코딩 에이전트가 <code>connect_web_picker</code>를 호출하면 자동 기동됩니다.</div>
+    <script src="popup.js"></script>
+  </body>
+</html>

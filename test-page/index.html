@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web Picker · Demo</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body { font: 15px/1.6 system-ui, sans-serif; margin: 0; color: #111; background: #f6f7f9; }
+      header, footer { background: #111827; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+      main { max-width: 860px; margin: 24px auto; padding: 0 20px; }
+      .btn { border: none; border-radius: 8px; padding: 9px 16px; cursor: pointer; font: inherit; }
+      .btn.primary { background: #2563eb; color: #fff; }
+      .btn.ghost { background: transparent; color: #fff; border: 1px solid #4b5563; }
+      .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+      .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+      .card h3 { margin: 0 0 8px; }
+      form { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-top: 20px; }
+      label { display: block; font-size: 13px; color: #374151; margin: 10px 0 4px; }
+      input, textarea { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font: inherit; }
+      .note { color: #6b7280; font-size: 13px; }
+      h1 { margin: 0; font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <!-- Decoy #1: a "저장" button in the header landmark -->
+    <header aria-label="상단바">
+      <h1>데모 대시보드</h1>
+      <button id="header-save" class="btn ghost" data-scope="header">저장</button>
+    </header>
+
+    <main>
+      <p class="note">
+        이 페이지는 웹픽커 재현용입니다. 같은 라벨(<b>저장</b>)의 버튼이 header / main / footer 세 곳에
+        있습니다. 셀렉터나 라벨만으로는 구분되지 않지만, 캡처에 담기는 landmark·ancestors·selector로
+        정확히 하나를 식별할 수 있습니다. <b>main 영역의 저장 버튼</b>을 찍어 보세요.
+      </p>
+
+      <section aria-label="카드 목록" class="cards">
+        <article class="card">
+          <h3>프로필</h3>
+          <p>사용자 프로필 카드입니다.</p>
+          <!-- Decoy #2 (the intended target): a "저장" button in the main landmark -->
+          <button id="profile-save" class="btn primary" data-scope="profile">저장</button>
+        </article>
+        <article class="card">
+          <h3>알림</h3>
+          <p>알림 설정 카드입니다.</p>
+          <a href="#details" class="detail-link">자세히 보기</a>
+        </article>
+      </section>
+
+      <form aria-label="계정 폼">
+        <h3>계정 설정</h3>
+        <label for="email">이메일</label>
+        <input id="email" name="email" type="email" placeholder="you@example.com" />
+        <label for="bio">소개</label>
+        <textarea id="bio" name="bio" placeholder="자기소개"></textarea>
+        <div style="margin-top:12px">
+          <button id="form-submit" class="btn primary" type="button" data-scope="form">변경사항 저장</button>
+        </div>
+      </form>
+    </main>
+
+    <!-- Decoy #3: a "저장" button in the footer landmark -->
+    <footer aria-label="하단바">
+      <span class="note" style="color:#9ca3af">© 2026 Demo</span>
+      <button id="footer-save" class="btn ghost" data-scope="footer">저장</button>
+    </footer>
+  </body>
+</html>

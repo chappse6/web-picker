@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Web Picker",
+  "version": "0.1.0",
+  "description": "Pick a UI element on a localhost page and send a fix request to your MCP coding agent.",
+  "permissions": ["alarms"],
+  "host_permissions": [
+    "http://127.0.0.1:8787/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Web Picker"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://*.localhost/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["config.js", "styles.js", "pick.js", "capture.js", "transport.js"],
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://*.localhost/*"]
+    }
+  ]
+}
