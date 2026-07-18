@@ -86,8 +86,9 @@ The whole round trip is reproducible from the demo page alone.
    - `connect_web_picker` → claims the picker, shows pending count.
    - `list_web_requests` → shows your request with its id and status.
    - `get_web_request` with that id → shows the target clues. Note that
-     `landmark: main` (and the selector) distinguish it from the header/footer
-     **저장** decoys, even though all three share the visible label **저장**.
+     `landmark: section` (and the selector `#profile-save`) distinguish it from
+     the header/footer **저장** decoys (`landmark: header` / `landmark: footer`),
+     even though all three share the visible label **저장**.
    - `resolve_web_request` with the id → marks it resolved.
 
 That decoy round trip is exactly what `test/integration.test.ts` automates.
