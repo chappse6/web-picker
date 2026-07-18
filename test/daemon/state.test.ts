@@ -200,3 +200,39 @@ describe('duplicate enqueue idempotency', () => {
     expect(s.list()).toHaveLength(2);
   });
 });
+
+describe('subscribe', () => {
+  it('notifies listeners when a new request is enqueued', () => {
+    const s = createState();
+    let fired = 0;
+    s.subscribe(() => {
+      fired += 1;
+    });
+    s.enqueue(payload());
+    expect(fired).toBe(1);
+  });
+
+  it('does not notify on a deduped enqueue', () => {
+    let now = 1000;
+    const s = createState({ dedupWindowMs: 1000, now: () => now });
+    s.enqueue(payload());
+    let fired = 0;
+    s.subscribe(() => {
+      fired += 1;
+    });
+    now = 1200;
+    s.enqueue(payload());
+    expect(fired).toBe(0);
+  });
+
+  it('stops notifying after unsubscribe', () => {
+    const s = createState();
+    let fired = 0;
+    const off = s.subscribe(() => {
+      fired += 1;
+    });
+    off();
+    s.enqueue(payload());
+    expect(fired).toBe(0);
+  });
+});

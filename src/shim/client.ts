@@ -46,6 +46,7 @@ export interface WebPickerClient {
   heartbeat(): Promise<void>;
   list(): Promise<WebRequest[]>;
   pull(): Promise<WebRequest[]>;
+  watch(timeoutMs?: number): Promise<WebRequest[]>;
   get(id: string): Promise<WebRequest | null>;
   resolve(id: string): Promise<{ ok: boolean }>;
 }
@@ -95,6 +96,11 @@ export function createClient(deps: ClientDeps): WebPickerClient {
     async pull() {
       const t = await tx();
       const r = await t.send('pull');
+      return r?.requests ?? [];
+    },
+    async watch(timeoutMs) {
+      const t = await tx();
+      const r = await t.send('watch', timeoutMs === undefined ? {} : { timeoutMs });
       return r?.requests ?? [];
     },
     async get(id) {

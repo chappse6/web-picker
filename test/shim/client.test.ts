@@ -91,6 +91,21 @@ describe('shim client — connect / claim', () => {
     expect(calls.at(-1)).toEqual({ op: 'take_over', args: { sessionId: 'a' } });
   });
 
+  it('watch forwards timeout and returns requests', async () => {
+    const { transport, calls } = fakeTransport({
+      watch: { ok: true, requests: [{ id: 'r9' }] },
+    });
+    const client = createClient({
+      launcher: fakeLauncher(),
+      createTransport: () => transport,
+      sessionId: 'a',
+      label: 'A',
+    });
+    const requests = await client.watch(1234);
+    expect(requests.map((r) => r.id)).toEqual(['r9']);
+    expect(calls.at(-1)).toEqual({ op: 'watch', args: { timeoutMs: 1234 } });
+  });
+
   it('pull returns requests and resolve forwards the id', async () => {
     const { transport, calls } = fakeTransport({
       pull: { ok: true, requests: [{ id: 'r1' }, { id: 'r2' }] },

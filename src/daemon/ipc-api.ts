@@ -8,10 +8,15 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { State } from './state.js';
 import type { ApiHandler, ApiRequest, ApiResponse } from './http.js';
+import type { WebRequest } from '../shared/types.js';
 
 export interface IpcApiConfig {
   token: string;
+  /** default long-poll timeout for watch, ms. */
+  watchTimeoutMs?: number;
 }
+
+const DEFAULT_WATCH_TIMEOUT_MS = 25_000;
 
 const TOKEN_HEADER = 'x-web-picker-token';
 
@@ -28,7 +33,13 @@ function tokenMatches(provided: string | undefined, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+function pendingRequests(state: State): WebRequest[] {
+  return state.list().filter((r) => r.status === 'pending');
+}
+
 export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
+  const watchTimeoutMs = config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS;
+
   return (req) => {
     if (req.path !== '/ipc') return json(404, { error: 'not found' });
     if (!tokenMatches(req.headers[TOKEN_HEADER], config.token)) {
@@ -59,9 +70,36 @@ export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
         const ok = state.release(String(body.sessionId));
         return json(200, { ok, activeSessionId: state.activeSessionId });
       }
+      case 'list': {
+        return json(200, { ok: true, requests: state.list() });
+      }
+      case 'get': {
+        return json(200, { ok: true, request: state.get(String(body.id)) ?? null });
+      }
       case 'pull': {
         const requests = state.pull();
         return json(200, { ok: true, requests });
+      }
+      case 'watch': {
+        const now = pendingRequests(state);
+        if (now.length > 0) return json(200, { ok: true, requests: now });
+        const timeout = typeof body.timeoutMs === 'number' ? body.timeoutMs : watchTimeoutMs;
+        return new Promise<ApiResponse>((resolve) => {
+          let settled = false;
+          const finish = (requests: WebRequest[]) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            unsub();
+            resolve(json(200, { ok: true, requests }));
+          };
+          const unsub = state.subscribe(() => finish(pendingRequests(state)));
+          const timer = setTimeout(() => finish([]), timeout);
+          // don't let a pending watch keep the process alive
+          if (typeof (timer as { unref?: () => void }).unref === 'function') {
+            (timer as { unref: () => void }).unref();
+          }
+        });
       }
       case 'resolve': {
         const ok = state.resolve(String(body.id));

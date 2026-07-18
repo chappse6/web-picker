@@ -200,6 +200,43 @@ describe('IPC api — token guard', () => {
     const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'nonsense' } }));
     expect(res.status).toBe(400);
   });
+
+  it('list returns the whole queue; get returns one by id', async () => {
+    const state = createState();
+    const row = state.enqueue(payload());
+    const api = createIpcApi(state, { token: TOKEN });
+    const h = { 'x-web-picker-token': TOKEN };
+    const list = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'list' } }));
+    expect((list.body as { requests: unknown[] }).requests).toHaveLength(1);
+    const got = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', id: row.id } }));
+    expect((got.body as { request: { id: string } }).request.id).toBe(row.id);
+    const missing = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', id: 'nope' } }));
+    expect((missing.body as { request: unknown }).request).toBe(null);
+  });
+
+  it('watch returns immediately when a pending request already exists', async () => {
+    const state = createState();
+    state.enqueue(payload());
+    const api = createIpcApi(state, { token: TOKEN });
+    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 50 } }));
+    expect((res.body as { requests: unknown[] }).requests).toHaveLength(1);
+  });
+
+  it('watch times out to an empty list when nothing arrives', async () => {
+    const state = createState();
+    const api = createIpcApi(state, { token: TOKEN });
+    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 20 } }));
+    expect((res.body as { requests: unknown[] }).requests).toHaveLength(0);
+  });
+
+  it('watch resolves when a request is enqueued during the wait', async () => {
+    const state = createState();
+    const api = createIpcApi(state, { token: TOKEN });
+    const pending = api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 1000 } }));
+    setTimeout(() => state.enqueue(payload()), 10);
+    const res = await pending;
+    expect((res.body as { requests: unknown[] }).requests).toHaveLength(1);
+  });
 });
 
 describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
