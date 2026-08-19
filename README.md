@@ -172,9 +172,12 @@ npm run build     # tsc -> dist/
 npm run benchmark # deterministic target-disambiguation benchmark -> artifacts/
 ```
 
-`npm run benchmark` measures target disambiguation on 30 static HTML fixtures.
-It records text-only resolution, Web Picker locator resolution, confidence
-calibration, and serialized capture-payload byte sizes in
+`npm run benchmark` measures target disambiguation only on 30 static HTML
+fixtures. It includes balanced ambiguous-label and unique-label controls,
+along with both successful and unsuccessful locator resolutions. It is not a
+measure of coding-agent productivity or source retrieval. Results record
+text-only resolution, Web Picker locator resolution, global and category ×
+confidence calibration, label strata, and serialized capture-payload byte sizes in
 `artifacts/benchmark-results.json` and `artifacts/benchmark-results.md`.
 
 Architecture: pure core (`src/daemon/state.ts`) + application handlers

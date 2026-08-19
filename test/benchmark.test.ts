@@ -9,12 +9,14 @@ const scoringFixtures = [
   {
     id: 'ambiguous-label',
     category: 'repeated-label' as const,
+    stratum: 'ambiguous-label' as const,
     html: '<main><h1>Account</h1><button id="target">Save</button><button>Save</button></main>',
     target: '#target',
   },
   {
     id: 'unique-label',
     category: 'safe-test-id' as const,
+    stratum: 'unique-label' as const,
     html: '<main><h1>Account</h1><button id="target">Continue</button></main>',
     target: '#target',
   },
@@ -64,6 +66,33 @@ describe('target-disambiguation benchmark', () => {
     expect(runBenchmark(fixtures)).toEqual(runBenchmark(fixtures));
   });
 
+  it('balances ambiguous and unique label strata with varied locator outcomes', () => {
+    const result = runBenchmark(fixtures);
+
+    expect(fixtures.filter((fixture) => fixture.stratum === 'ambiguous-label')).toHaveLength(15);
+    expect(fixtures.filter((fixture) => fixture.stratum === 'unique-label')).toHaveLength(15);
+    expect((result as any).strata).toMatchObject({
+      'ambiguous-label': { fixtures: 15 },
+      'unique-label': { fixtures: 15 },
+    });
+    expect(new Set(result.fixtures.map((fixture) => fixture.confidence))).toEqual(new Set(['high', 'medium', 'low']));
+    expect(result.fixtures.some((fixture) => !fixture.locatorSuccess)).toBe(true);
+  });
+
+  it('reports category by confidence calibration totals and successes', () => {
+    const result = runBenchmark(fixtures) as any;
+
+    expect(result.categoryConfidenceCalibration).toMatchObject({
+      'repeated-class': {
+        low: { total: expect.any(Number), successes: 0 },
+      },
+    });
+    const total = Object.values(result.categoryConfidenceCalibration)
+      .flatMap((byConfidence: any) => Object.values(byConfidence))
+      .reduce((sum: number, bucket: any) => sum + bucket.total, 0);
+    expect(total).toBe(fixtures.length);
+  });
+
   it('writes stable JSON and Markdown artifacts without timestamps', () => {
     const outputDirectory = mkdtempSync(join(tmpdir(), 'web-picker-benchmark-'));
     try {
@@ -76,6 +105,8 @@ describe('target-disambiguation benchmark', () => {
         fixtureCount: 30,
       });
       expect(markdown).toContain('# target-disambiguation benchmark');
+      expect(markdown).toContain('## Strata');
+      expect(markdown).toContain('## Category confidence calibration');
       expect(json).not.toMatch(/createdAt|timestamp/i);
       expect(markdown).not.toMatch(/createdAt|timestamp/i);
     } finally {

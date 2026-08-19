@@ -1,28 +1,131 @@
 {
   "label": "target-disambiguation benchmark",
   "fixtureCount": 30,
-  "textOnlyRate": 0,
-  "locatorRate": 1,
+  "textOnlyRate": 0.5,
+  "locatorRate": 0.8,
   "confidenceCalibration": {
     "high": {
-      "total": 20,
-      "successes": 20
+      "total": 15,
+      "successes": 15
     },
     "low": {
-      "total": 0,
+      "total": 6,
       "successes": 0
     },
     "medium": {
-      "total": 10,
-      "successes": 10
+      "total": 9,
+      "successes": 9
     }
   },
-  "meanPayloadBytes": 1065,
-  "p95PayloadBytes": 1138,
+  "categoryConfidenceCalibration": {
+    "aria-only": {
+      "high": {
+        "total": 5,
+        "successes": 5
+      },
+      "low": {
+        "total": 0,
+        "successes": 0
+      },
+      "medium": {
+        "total": 0,
+        "successes": 0
+      }
+    },
+    "generated-class": {
+      "high": {
+        "total": 0,
+        "successes": 0
+      },
+      "low": {
+        "total": 1,
+        "successes": 0
+      },
+      "medium": {
+        "total": 4,
+        "successes": 4
+      }
+    },
+    "nested-landmark": {
+      "high": {
+        "total": 0,
+        "successes": 0
+      },
+      "low": {
+        "total": 1,
+        "successes": 0
+      },
+      "medium": {
+        "total": 4,
+        "successes": 4
+      }
+    },
+    "repeated-class": {
+      "high": {
+        "total": 3,
+        "successes": 3
+      },
+      "low": {
+        "total": 2,
+        "successes": 0
+      },
+      "medium": {
+        "total": 0,
+        "successes": 0
+      }
+    },
+    "repeated-label": {
+      "high": {
+        "total": 3,
+        "successes": 3
+      },
+      "low": {
+        "total": 1,
+        "successes": 0
+      },
+      "medium": {
+        "total": 1,
+        "successes": 1
+      }
+    },
+    "safe-test-id": {
+      "high": {
+        "total": 4,
+        "successes": 4
+      },
+      "low": {
+        "total": 1,
+        "successes": 0
+      },
+      "medium": {
+        "total": 0,
+        "successes": 0
+      }
+    }
+  },
+  "strata": {
+    "ambiguous-label": {
+      "fixtures": 15,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 13,
+      "textOnlyRate": 0,
+      "locatorRate": 0.8666666666666667
+    },
+    "unique-label": {
+      "fixtures": 15,
+      "textOnlySuccesses": 15,
+      "locatorSuccesses": 11,
+      "textOnlyRate": 1,
+      "locatorRate": 0.7333333333333333
+    }
+  },
+  "meanPayloadBytes": 1062.2333333333333,
+  "p95PayloadBytes": 1162,
   "fixtures": [
     {
       "id": "aria-only-01",
       "category": "aria-only",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
@@ -31,78 +134,88 @@
     {
       "id": "aria-only-02",
       "category": "aria-only",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1134
+      "payloadBytes": 1139
     },
     {
       "id": "aria-only-03",
       "category": "aria-only",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1138
+      "payloadBytes": 1150
     },
     {
       "id": "aria-only-04",
       "category": "aria-only",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1158
+      "payloadBytes": 1212
     },
     {
       "id": "aria-only-05",
       "category": "aria-only",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1134
+      "payloadBytes": 1062
     },
     {
       "id": "generated-class-01",
       "category": "generated-class",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 984
+      "payloadBytes": 1051
     },
     {
       "id": "generated-class-02",
       "category": "generated-class",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 989
+      "payloadBytes": 1006
     },
     {
       "id": "generated-class-03",
       "category": "generated-class",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 989
+      "payloadBytes": 993
     },
     {
       "id": "generated-class-04",
       "category": "generated-class",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 1009
+      "payloadBytes": 964
     },
     {
       "id": "generated-class-05",
       "category": "generated-class",
-      "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "medium",
-      "payloadBytes": 984
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 987
     },
     {
       "id": "nested-landmark-01",
       "category": "nested-landmark",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "medium",
@@ -111,78 +224,88 @@
     {
       "id": "nested-landmark-02",
       "category": "nested-landmark",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 1120
+      "payloadBytes": 1162
     },
     {
       "id": "nested-landmark-03",
       "category": "nested-landmark",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 1120
+      "payloadBytes": 1136
     },
     {
       "id": "nested-landmark-04",
       "category": "nested-landmark",
-      "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "medium",
-      "payloadBytes": 1120
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 1115
     },
     {
       "id": "nested-landmark-05",
       "category": "nested-landmark",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "medium",
-      "payloadBytes": 1120
+      "payloadBytes": 1072
     },
     {
       "id": "repeated-class-01",
       "category": "repeated-class",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1100
+      "payloadBytes": 1079
     },
     {
       "id": "repeated-class-02",
       "category": "repeated-class",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1080
+      "payloadBytes": 1095
     },
     {
       "id": "repeated-class-03",
       "category": "repeated-class",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "high",
-      "payloadBytes": 1100
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 1008
     },
     {
       "id": "repeated-class-04",
       "category": "repeated-class",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1088
+      "payloadBytes": 1118
     },
     {
       "id": "repeated-class-05",
       "category": "repeated-class",
-      "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "high",
-      "payloadBytes": 1070
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 1037
     },
     {
       "id": "repeated-label-01",
       "category": "repeated-label",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
@@ -191,38 +314,43 @@
     {
       "id": "repeated-label-02",
       "category": "repeated-label",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 999
+      "payloadBytes": 1023
     },
     {
       "id": "repeated-label-03",
       "category": "repeated-label",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "high",
-      "payloadBytes": 993
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 956
     },
     {
       "id": "repeated-label-04",
       "category": "repeated-label",
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 961
+    },
+    {
+      "id": "repeated-label-05",
+      "category": "repeated-label",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
       "payloadBytes": 999
     },
     {
-      "id": "repeated-label-05",
-      "category": "repeated-label",
-      "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "high",
-      "payloadBytes": 1029
-    },
-    {
       "id": "safe-test-id-01",
       "category": "safe-test-id",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
@@ -231,66 +359,70 @@
     {
       "id": "safe-test-id-02",
       "category": "safe-test-id",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1050
+      "payloadBytes": 1091
     },
     {
       "id": "safe-test-id-03",
       "category": "safe-test-id",
+      "stratum": "ambiguous-label",
       "textOnlySuccess": false,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1049
+      "payloadBytes": 1041
     },
     {
       "id": "safe-test-id-04",
       "category": "safe-test-id",
-      "textOnlySuccess": false,
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
       "locatorSuccess": true,
       "confidence": "high",
-      "payloadBytes": 1048
+      "payloadBytes": 1034
     },
     {
       "id": "safe-test-id-05",
       "category": "safe-test-id",
-      "textOnlySuccess": false,
-      "locatorSuccess": true,
-      "confidence": "high",
-      "payloadBytes": 1049
+      "stratum": "unique-label",
+      "textOnlySuccess": true,
+      "locatorSuccess": false,
+      "confidence": "low",
+      "payloadBytes": 1079
     }
   ],
   "categories": {
     "aria-only": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
+      "textOnlySuccesses": 2,
       "locatorSuccesses": 5
     },
     "generated-class": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
-      "locatorSuccesses": 5
+      "textOnlySuccesses": 3,
+      "locatorSuccesses": 4
     },
     "nested-landmark": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
-      "locatorSuccesses": 5
+      "textOnlySuccesses": 2,
+      "locatorSuccesses": 4
     },
     "repeated-class": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
-      "locatorSuccesses": 5
+      "textOnlySuccesses": 3,
+      "locatorSuccesses": 3
     },
     "repeated-label": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
-      "locatorSuccesses": 5
+      "textOnlySuccesses": 2,
+      "locatorSuccesses": 4
     },
     "safe-test-id": {
       "fixtures": 5,
-      "textOnlySuccesses": 0,
-      "locatorSuccesses": 5
+      "textOnlySuccesses": 3,
+      "locatorSuccesses": 4
     }
   }
 }
