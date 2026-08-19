@@ -17,7 +17,7 @@
   const { STYLES, HIGHLIGHT_ID, PANEL_ID, FAB_ID, PICK_ICON } = await import(url('styles.js'));
   const { createPicker } = await import(url('pick.js'));
   const { capturePayload } = await import(url('capture.js'));
-  const { runtimeErrorGuidance } = await import(url('runtime-api.js'));
+  const { runtimeErrorGuidance } = await import(url('error-guidance.js'));
 
   async function send(type, payload) {
     const response = await chrome.runtime.sendMessage({ type, payload });

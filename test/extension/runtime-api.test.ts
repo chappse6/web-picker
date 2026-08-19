@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleRuntimeMessage } from '../../extension/runtime-api.js';
 import { getStatus, getVersion, postRequest, release } from '../../extension/transport.js';
 
@@ -42,6 +42,8 @@ function deps(overrides = {}) {
     ...overrides,
   };
 }
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('extension runtime API', () => {
   it.each([
@@ -139,15 +141,38 @@ describe('extension runtime API', () => {
     expect(transport.release).not.toHaveBeenCalled();
   });
 
-  it('returns a typed daemon error instead of rejecting', async () => {
-    const error = Object.assign(new Error('offline'), { code: 'daemon-offline', status: 502 });
+  it('normalizes an unknown typed dependency error instead of relaying it', async () => {
+    const error = Object.assign(new Error('SECRET_QUESTION <img src=x>'), {
+      code: 'SECRET_QUESTION <img src=x>',
+      status: 502,
+    });
     const transport = deps({ getStatus: vi.fn().mockRejectedValue(error) });
 
     await expect(handleRuntimeMessage(
       { type: 'web-picker:get-status' },
       { tab: { url: 'http://localhost:3000/' } },
       transport,
-    )).resolves.toEqual({ ok: false, error: { code: 'daemon-offline', status: 502 } });
+    )).resolves.toEqual({
+      ok: false,
+      error: { code: 'daemon-unavailable', status: 503 },
+    });
+  });
+
+  it('normalizes a mismatched public dependency error pair', async () => {
+    const error = Object.assign(new Error('forbidden-origin'), {
+      code: 'forbidden-origin',
+      status: 400,
+    });
+    const transport = deps({ getStatus: vi.fn().mockRejectedValue(error) });
+
+    await expect(handleRuntimeMessage(
+      { type: 'web-picker:get-status' },
+      { tab: { url: 'http://localhost:3000/' } },
+      transport,
+    )).resolves.toEqual({
+      ok: false,
+      error: { code: 'daemon-unavailable', status: 503 },
+    });
   });
 
   it.each([
@@ -176,9 +201,9 @@ describe('extension runtime API', () => {
     ['persistence-failed', '디스크 여유 공간과 웹픽커 저장 폴더 권한을 확인해 주세요.'],
     ['daemon-unavailable', '웹픽커 데몬을 시작하거나 도구 등록을 다시 실행해 주세요.'],
   ])('provides static Korean guidance for %s without captured content', async (code, note) => {
-    const runtimeApi = await import('../../extension/runtime-api.js');
+    const guidanceModule = await import('../../extension/error-guidance.js').catch(() => ({}));
 
-    expect(runtimeApi.runtimeErrorGuidance?.(code)).toEqual({
+    expect(guidanceModule.runtimeErrorGuidance?.(code)).toEqual({
       title: '요청을 보낼 수 없습니다',
       note,
     });
@@ -199,6 +224,30 @@ describe('extension daemon transport', () => {
     )));
 
     await expect(call()).rejects.toMatchObject({ status, code, message: code });
-    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    [418, 'SECRET_QUESTION <img src=x>'],
+    [400, 'forbidden-origin'],
+    [500, undefined],
+  ])('normalizes an unsafe or mismatched %s response error', async (status, code) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify(code === undefined ? {} : { error: code }),
+      { status, headers: { 'content-type': 'application/json' } },
+    )));
+
+    let caught;
+    try {
+      await getStatus();
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      status: 503,
+      code: 'daemon-unavailable',
+      message: 'daemon-unavailable',
+    });
+    expect(JSON.stringify(caught)).not.toContain('SECRET_QUESTION');
   });
 });

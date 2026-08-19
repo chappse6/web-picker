@@ -4,6 +4,7 @@
  * protected endpoints. version.json remains origin-free for reload probing.
  */
 import { daemonUrl } from './config.js';
+import { normalizePublicError } from './public-errors.js';
 
 export class DaemonError extends Error {
   constructor(status, code) {
@@ -17,8 +18,8 @@ export class DaemonError extends Error {
 async function jsonOrThrow(res) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const code = typeof body?.error === 'string' ? body.error : 'daemon-error';
-    throw new DaemonError(res.status, code);
+    const normalized = normalizePublicError(res.status, body?.error);
+    throw new DaemonError(normalized.status, normalized.code);
   }
   return body;
 }
