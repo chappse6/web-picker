@@ -6,6 +6,12 @@ import { createServer } from '../../src/daemon/server.js';
 import type { ApiRequest } from '../../src/daemon/http.js';
 import type { CapturePayload } from '../../src/shared/types.js';
 
+const EXTENSION_ORIGIN = 'chrome-extension://mnglicpibnccgcifnndemfpidkcgboli';
+
+function extensionApi(state = createState(), version = '0.1.0') {
+  return createExtensionApi(state, { version, expectedExtensionOrigin: EXTENSION_ORIGIN });
+}
+
 function payload(overrides: Partial<CapturePayload> = {}): CapturePayload {
   const { element, ...rest } = overrides;
   return {
@@ -51,15 +57,15 @@ function req(overrides: Partial<ApiRequest>): ApiRequest {
   };
 }
 
-describe('extension HTTP api — origin allowlist', () => {
-  it('accepts POST /requests from a localhost origin and enqueues', async () => {
+describe('extension HTTP api — exact extension origin', () => {
+  it('accepts POST /requests from the pinned extension origin and enqueues', async () => {
     const state = createState();
-    const api = createExtensionApi(state, { version: '0.1.0' });
+    const api = extensionApi(state);
     const res = await api(
       req({
         method: 'POST',
         path: '/requests',
-        headers: { origin: 'http://localhost:3000' },
+        headers: { origin: EXTENSION_ORIGIN },
         body: payload(),
       }),
     );
@@ -69,28 +75,20 @@ describe('extension HTTP api — origin allowlist', () => {
     expect(state.list()).toHaveLength(1);
   });
 
-  it('accepts a 127.0.0.1 origin', async () => {
+  it.each([
+    ['absent', undefined],
+    ['localhost page', 'http://localhost:3000'],
+    ['127.0.0.1 page', 'http://127.0.0.1:5500'],
+    ['public page', 'https://evil.example.com'],
+    ['wrong extension', 'chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+  ])('rejects %s origin with 403 and does not enqueue', async (_label, origin) => {
     const state = createState();
-    const api = createExtensionApi(state, { version: '0.1.0' });
+    const api = extensionApi(state);
     const res = await api(
       req({
         method: 'POST',
         path: '/requests',
-        headers: { origin: 'http://127.0.0.1:5500' },
-        body: payload(),
-      }),
-    );
-    expect(res.status).toBe(200);
-  });
-
-  it('rejects a non-localhost origin with 403 and does not enqueue', async () => {
-    const state = createState();
-    const api = createExtensionApi(state, { version: '0.1.0' });
-    const res = await api(
-      req({
-        method: 'POST',
-        path: '/requests',
-        headers: { origin: 'https://evil.example.com' },
+        headers: { origin },
         body: payload(),
       }),
     );
@@ -100,12 +98,12 @@ describe('extension HTTP api — origin allowlist', () => {
 
   it('rejects an invalid capture payload with 400', async () => {
     const state = createState();
-    const api = createExtensionApi(state, { version: '0.1.0' });
+    const api = extensionApi(state);
     const res = await api(
       req({
         method: 'POST',
         path: '/requests',
-        headers: { origin: 'http://localhost:3000' },
+        headers: { origin: EXTENSION_ORIGIN },
         body: { nope: true },
       }),
     );
@@ -115,12 +113,12 @@ describe('extension HTTP api — origin allowlist', () => {
 
   async function expectRejected(body: CapturePayload) {
     const state = createState();
-    const api = createExtensionApi(state, { version: '0.1.0' });
+    const api = extensionApi(state);
     const res = await api(
       req({
         method: 'POST',
         path: '/requests',
-        headers: { origin: 'http://localhost:3000' },
+        headers: { origin: EXTENSION_ORIGIN },
         body,
       }),
     );
@@ -153,8 +151,8 @@ describe('extension HTTP api — origin allowlist', () => {
   it('GET /status returns queue summary and active session', async () => {
     const state = createState();
     state.enqueue(payload());
-    const api = createExtensionApi(state, { version: '0.1.0' });
-    const res = await api(req({ method: 'GET', path: '/status', headers: { origin: 'http://localhost:3000' } }));
+    const api = extensionApi(state);
+    const res = await api(req({ method: 'GET', path: '/status', headers: { origin: EXTENSION_ORIGIN } }));
     expect(res.status).toBe(200);
     const b = res.body as { activeSessionId: string | null; queue: Array<{ status: string }> };
     expect(b.activeSessionId).toBe(null);
@@ -164,7 +162,7 @@ describe('extension HTTP api — origin allowlist', () => {
 
   it('GET /version.json returns the version', async () => {
     const state = createState();
-    const api = createExtensionApi(state, { version: '9.9.9' });
+    const api = extensionApi(state, '9.9.9');
     const res = await api(req({ method: 'GET', path: '/version.json' }));
     expect(res.status).toBe(200);
     expect((res.body as { version: string }).version).toBe('9.9.9');
@@ -174,8 +172,8 @@ describe('extension HTTP api — origin allowlist', () => {
     const state = createState();
     state.register('a', 'A');
     state.claim('a');
-    const api = createExtensionApi(state, { version: '0.1.0' });
-    const res = await api(req({ method: 'POST', path: '/release', headers: { origin: 'http://localhost:3000' }, body: {} }));
+    const api = extensionApi(state);
+    const res = await api(req({ method: 'POST', path: '/release', headers: { origin: EXTENSION_ORIGIN }, body: {} }));
     expect(res.status).toBe(200);
     expect(state.activeSessionId).toBe(null);
   });
@@ -284,7 +282,7 @@ describe('IPC api — token guard', () => {
 describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
   it('serves extension and IPC over a real socket on 127.0.0.1', async () => {
     const state = createState();
-    const server = createServer({ state, version: '0.1.0', token: 'sock-token' });
+    const server = createServer({ state, version: '0.1.0', token: 'sock-token', expectedExtensionOrigin: EXTENSION_ORIGIN });
     const { host, port } = await server.listen(0);
     expect(host).toBe('127.0.0.1');
     try {
@@ -312,18 +310,42 @@ describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
     }
   });
 
-  it('answers CORS preflight (OPTIONS) with 204 and allow headers', async () => {
+  it('answers pinned-extension CORS preflight with 204 and a fixed allow origin', async () => {
     const state = createState();
-    const server = createServer({ state, version: '0.1.0', token: 'x' });
+    const server = createServer({ state, version: '0.1.0', token: 'x', expectedExtensionOrigin: EXTENSION_ORIGIN });
     const { port } = await server.listen(0);
     try {
       const res = await fetch(`http://127.0.0.1:${port}/requests`, {
         method: 'OPTIONS',
-        headers: { origin: 'http://localhost:3000' },
+        headers: { origin: EXTENSION_ORIGIN },
       });
       expect(res.status).toBe(204);
-      expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:3000');
+      expect(res.headers.get('access-control-allow-origin')).toBe(EXTENSION_ORIGIN);
       expect(res.headers.get('access-control-allow-methods')).toContain('POST');
+    } finally {
+      await server.close();
+    }
+  });
+
+  it.each([
+    ['absent', undefined],
+    ['localhost page', 'http://localhost:3000'],
+    ['public page', 'https://evil.example.com'],
+    ['wrong extension', 'chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+  ])('rejects %s origin preflight without reflecting it', async (_label, origin) => {
+    const server = createServer({
+      state: createState(),
+      version: '0.1.0',
+      token: 'x',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
+    const { port } = await server.listen(0);
+    try {
+      const headers = origin ? { origin } : undefined;
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, { method: 'OPTIONS', headers });
+
+      expect(res.status).toBe(403);
+      expect(res.headers.get('access-control-allow-origin')).toBe(EXTENSION_ORIGIN);
     } finally {
       await server.close();
     }

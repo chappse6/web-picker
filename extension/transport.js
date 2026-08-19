@@ -1,9 +1,7 @@
 /**
- * Daemon communication. Thin fetch wrappers around the daemon endpoints.
- *
- * POST/status/release are called from the content script (page origin =
- * localhost, which the daemon's origin allowlist accepts). getVersion is called
- * from the background worker (version.json needs no origin check).
+ * Daemon communication owned exclusively by the background service worker.
+ * Browser fetch therefore supplies the pinned chrome-extension:// origin for
+ * protected endpoints. version.json remains origin-free for reload probing.
  */
 import { daemonUrl } from './config.js';
 

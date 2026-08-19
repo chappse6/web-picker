@@ -11,6 +11,8 @@ import { createTools } from '../src/shim/tools.js';
 import { resolvePaths, readRuntime } from '../src/daemon/paths.js';
 import type { CapturePayload } from '../src/shared/types.js';
 
+const EXTENSION_ORIGIN = 'chrome-extension://mnglicpibnccgcifnndemfpidkcgboli';
+
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 function capture(selector: string, landmark: string, visibleLabel: string, question: string): CapturePayload {
@@ -48,7 +50,7 @@ function capture(selector: string, landmark: string, visibleLabel: string, quest
 async function postCapture(port: number, payload: CapturePayload) {
   return fetch(`http://127.0.0.1:${port}/requests`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', origin: 'http://localhost:3000' },
+    headers: { 'content-type': 'application/json', origin: EXTENSION_ORIGIN },
     body: JSON.stringify(payload),
   });
 }

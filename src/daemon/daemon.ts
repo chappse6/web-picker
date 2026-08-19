@@ -12,6 +12,8 @@ import { DEFAULT_PORT } from './state.js';
 import { createServer } from './server.js';
 import { resolvePaths, ensureDir, generateToken, writeRuntime } from './paths.js';
 
+export const EXPECTED_EXTENSION_ORIGIN = 'chrome-extension://mnglicpibnccgcifnndemfpidkcgboli';
+
 function readVersion(): string {
   try {
     const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
@@ -39,7 +41,7 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Runnin
   const token = generateToken();
   const version = readVersion();
   const state = createState();
-  const server = createServer({ state, version, token });
+  const server = createServer({ state, version, token, expectedExtensionOrigin: EXPECTED_EXTENSION_ORIGIN });
 
   const requestedPort = opts.port ?? Number.parseInt(process.env.WEB_PICKER_PORT ?? '', 10);
   const port = Number.isFinite(requestedPort) ? requestedPort : DEFAULT_PORT;

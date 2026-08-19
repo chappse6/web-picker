@@ -3,6 +3,7 @@
   "name": "Web Picker",
   "version": "0.1.0",
   "description": "Pick a UI element on a localhost page and send a fix request to your MCP coding agent.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9Ede0BkAvJaqnOciwMhV/Xk66jSB1nXyUCSymJLGCLmZq3e+xYGswY0XgKQfLsLt8JEU7lvE/kA8yryT2n0DprGtWjvTMm8c6RjMWlO78/0I5p59FjLW83/V2Fi8tvnkctD4PpjuJnF56WNF44UDyogLCptMwU/8twKcw6xOok3wkFzc9QLQSFDCr4kx6sf8/f9/GBiL08vqDnciLxTre2ym57T00+GKD2RDxGSwQSkTZUFj38EFp8UvaiS3UF6y4tpVdclEjK54GOO0B/yqDHeomvAsGxJ/LnbrqiGOwnW/tUkhqIdgStZovu/X282qFEm0R7l92+iV7nvNd5HhCwIDAQAB",
   "permissions": ["alarms"],
   "host_permissions": [
     "http://127.0.0.1:8787/*",
@@ -26,7 +27,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["config.js", "styles.js", "pick.js", "capture.js", "transport.js"],
+      "resources": ["config.js", "styles.js", "pick.js", "capture.js"],
       "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://*.localhost/*"]
     }
   ]

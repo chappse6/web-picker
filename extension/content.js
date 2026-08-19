@@ -17,7 +17,14 @@
   const { STYLES, HIGHLIGHT_ID, PANEL_ID, FAB_ID, PICK_ICON } = await import(url('styles.js'));
   const { createPicker } = await import(url('pick.js'));
   const { capturePayload } = await import(url('capture.js'));
-  const transport = await import(url('transport.js'));
+
+  async function send(type, payload) {
+    const response = await chrome.runtime.sendMessage({ type, payload });
+    if (!response?.ok) {
+      throw Object.assign(new Error(response?.error?.code || 'runtime-error'), response?.error);
+    }
+    return response.data;
+  }
 
   const ICON_X = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const ICON_LOCK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8a919b" stroke-width="2.4"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
@@ -82,7 +89,7 @@
     const conn = panel?.querySelector('#wp-conn');
     const pending = panel?.querySelector('#wp-pending');
     try {
-      const s = await transport.getStatus();
+      const s = await send('web-picker:get-status');
       const n = (s.queue || []).filter((r) => r.status === 'pending').length;
       if (conn) conn.innerHTML = '<span class="wp-dot" style="background:#22c55e"></span>연결됨';
       if (conn) conn.className = 'wp-conn ok';
@@ -176,11 +183,11 @@
     setStatus('보내는 중…', null);
     try {
       const payload = capturePayload(selected, { userQuestion: q });
-      const res = await transport.postRequest(payload);
+      const res = await send('web-picker:create-request', payload);
       selected = null;
       let pending = null;
       try {
-        const s = await transport.getStatus();
+        const s = await send('web-picker:get-status');
         pending = (s.queue || []).filter((r) => r.status === 'pending').length;
       } catch {}
       renderSuccess(res.id, pending);

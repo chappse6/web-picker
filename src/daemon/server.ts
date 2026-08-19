@@ -18,6 +18,7 @@ export interface ServerDeps {
   state: State;
   version: string;
   token: string;
+  expectedExtensionOrigin: string;
   host?: string;
   logger?: Logger;
 }
@@ -67,22 +68,28 @@ function lowercaseHeaders(headers: http.IncomingHttpHeaders): Record<string, str
 export function createServer(deps: ServerDeps): RunningServer {
   const host = deps.host ?? BIND_HOST;
   const logger = deps.logger ?? silentLogger;
-  const extensionApi = createExtensionApi(deps.state, { version: deps.version });
+  const extensionApi = createExtensionApi(deps.state, {
+    version: deps.version,
+    expectedExtensionOrigin: deps.expectedExtensionOrigin,
+  });
   const ipcApi = createIpcApi(deps.state, { token: deps.token });
 
   const server = http.createServer(async (rawReq, rawRes) => {
     try {
       const url = new URL(rawReq.url ?? '/', `http://${host}`);
       const corsHeaders = {
-        'access-control-allow-origin': (Array.isArray(rawReq.headers.origin) ? rawReq.headers.origin[0] : rawReq.headers.origin) ?? '*',
+        'access-control-allow-origin': deps.expectedExtensionOrigin,
         'access-control-allow-headers': 'content-type, x-web-picker-token',
         'access-control-allow-methods': 'GET, POST, OPTIONS',
       };
 
-      // CORS preflight: the content script POSTs JSON, which the browser
-      // preflights. Answer it before routing.
+      // Protected extension calls are made by the worker and preflight with its
+      // pinned origin. Never reflect an arbitrary request origin.
       if (rawReq.method === 'OPTIONS') {
-        rawRes.writeHead(204, corsHeaders);
+        const requestOrigin = Array.isArray(rawReq.headers.origin)
+          ? rawReq.headers.origin[0]
+          : rawReq.headers.origin;
+        rawRes.writeHead(requestOrigin === deps.expectedExtensionOrigin ? 204 : 403, corsHeaders);
         rawRes.end();
         return;
       }
@@ -96,8 +103,6 @@ export function createServer(deps: ServerDeps): RunningServer {
       const handler: ApiHandler = url.pathname.startsWith('/ipc') ? ipcApi : extensionApi;
       const res = await handler(apiReq);
       const payload = JSON.stringify(res.body ?? {});
-      // Reflect the request origin so the content script's fetch is not blocked
-      // by CORS; the handler already rejects disallowed origins with 403.
       rawRes.writeHead(res.status, { 'content-type': 'application/json', ...corsHeaders });
       rawRes.end(payload);
     } catch (err) {

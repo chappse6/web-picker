@@ -5,17 +5,17 @@
  *  1. Auto-reload the extension when the daemon reports a newer version, so a
  *     `load unpacked` install picks up daemon-side changes without a manual
  *     reload (dev convenience; version.json needs no origin check).
- *  2. Nothing else — the content script talks to the daemon directly from the
- *     localhost page origin, which the daemon's allowlist accepts.
+ *  2. Own all daemon HTTP for content scripts after validating the sender tab.
  */
 import { VERSION } from './config.js';
-import { getVersion } from './transport.js';
+import * as transport from './transport.js';
+import { handleRuntimeMessage } from './runtime-api.js';
 
 const POLL_INTERVAL_MS = 15_000;
 
 async function checkVersionAndMaybeReload() {
   try {
-    const { version } = await getVersion();
+    const { version } = await transport.getVersion();
     if (version && version !== VERSION) {
       // daemon moved ahead of this unpacked build; reload to stay in sync
       chrome.runtime.reload();
@@ -24,6 +24,11 @@ async function checkVersionAndMaybeReload() {
     // daemon not running — ignore quietly
   }
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleRuntimeMessage(message, sender, transport).then(sendResponse);
+  return true;
+});
 
 chrome.runtime.onInstalled.addListener(checkVersionAndMaybeReload);
 chrome.runtime.onStartup?.addListener(checkVersionAndMaybeReload);

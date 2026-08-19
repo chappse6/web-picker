@@ -4,6 +4,8 @@ import type { DaemonHandle, IpcTransport } from '../../src/shim/client.js';
 import { createState } from '../../src/daemon/state.js';
 import { createServer } from '../../src/daemon/server.js';
 
+const EXTENSION_ORIGIN = 'chrome-extension://mnglicpibnccgcifnndemfpidkcgboli';
+
 function fakeLauncher(handle: DaemonHandle = { port: 8787, token: 't' }) {
   let count = 0;
   return {
@@ -128,7 +130,12 @@ describe('shim client — connect / claim', () => {
 describe('http transport — talks to a real daemon server', () => {
   it('registers and claims over http with the token', async () => {
     const state = createState();
-    const server = createServer({ state, version: '0.1.0', token: 'real-token' });
+    const server = createServer({
+      state,
+      version: '0.1.0',
+      token: 'real-token',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
     const { port } = await server.listen(0);
     try {
       const transport = createHttpTransport({ port, token: 'real-token' });
@@ -144,7 +151,12 @@ describe('http transport — talks to a real daemon server', () => {
 
   it('rejects with an error when the token is wrong', async () => {
     const state = createState();
-    const server = createServer({ state, version: '0.1.0', token: 'real-token' });
+    const server = createServer({
+      state,
+      version: '0.1.0',
+      token: 'real-token',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
     const { port } = await server.listen(0);
     try {
       const transport = createHttpTransport({ port, token: 'bad' });
