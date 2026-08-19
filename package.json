@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",
     "test:watch": "vitest"
   },
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^20.14.0",
     "jsdom": "^25.0.0",
+    "playwright-core": "^1.62.1",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   }

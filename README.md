@@ -21,8 +21,10 @@ never leaking sensitive values.
  └─────────────────────┘     └───────────────────────┘     └──────────────────┘
 ```
 
-- **Daemon** binds `127.0.0.1` only. Extension requests are accepted only from a
-  localhost page **Origin**; the shim's IPC is guarded by a per-run **token**.
+- **Daemon** binds `127.0.0.1` only. The extension worker accepts messages only
+  from Chrome-verified localhost tabs, and daemon extension endpoints accept only
+  the pinned `chrome-extension://mnglicpibnccgcifnndemfpidkcgboli` **Origin**.
+  The shim's IPC is guarded by a per-run **token**.
 - **Agent-neutral**: the daemon never knows whether the agent is Claude Code or
   Codex. Only the register step differs.
 - **Masking preserves identity**: input values, emails, tokens are never exported;
@@ -91,7 +93,8 @@ The whole round trip is reproducible from the demo page alone.
      even though all three share the visible label **저장**.
    - `resolve_web_request` with the id → marks it resolved.
 
-That decoy round trip is exactly what `test/integration.test.ts` automates.
+That decoy round trip is covered both by the browser-free integration suite and
+by the real Chrome E2E below.
 
 ### Reproduce without a browser (fully automated)
 
@@ -103,12 +106,48 @@ npm test
 tools through `connect → list → get → resolve`, asserting the picked element is
 uniquely identified. It also cold-spawns the built daemon from `dist/`.
 
+### Reproduce with the real Chrome extension
+
+`npm run test:e2e` opens an installed Google Chrome in a fresh headed profile,
+loads `extension/` unpacked, performs the profile-button pick through the real
+content UI, and verifies and resolves the queued request through the MCP client.
+It requires a graphical desktop session and normally finishes in about 10 seconds.
+It does not download a browser.
+
+macOS or Linux:
+
+```bash
+npm run test:e2e
+
+# For a non-standard Chrome install:
+PLAYWRIGHT_CHROME_EXECUTABLE=/path/to/google-chrome npm run test:e2e
+```
+
+Windows PowerShell:
+
+```powershell
+npm run test:e2e
+
+# For a non-standard Chrome install:
+$env:PLAYWRIGHT_CHROME_EXECUTABLE = 'C:\Path\To\chrome.exe'
+npm run test:e2e
+```
+
+If Chrome is absent or the override does not point to an installed executable,
+the test fails with:
+
+```text
+Google Chrome is required for npm run test:e2e; install Chrome or set PLAYWRIGHT_CHROME_EXECUTABLE
+```
+
 ## Security defaults
 
 - Daemon bound to `127.0.0.1` only.
 - Extension activates only on `localhost` / `127.0.0.1` / `*.localhost` pages.
-- Extension endpoints require a localhost **Origin**; IPC requires a **token**
-  (compared in constant time), stored `0600` in `~/.web-picker/token`.
+- The extension worker accepts only Chrome-verified localhost-tab senders;
+  extension HTTP endpoints require the exact pinned extension **Origin**. IPC
+  requires a **token** (compared in constant time), stored `0600` in
+  `~/.web-picker/token`.
 - Input values, emails, tokens, and sensitive `name` attributes are never
   exported. `dataset` sends keys only.
 
@@ -127,7 +166,8 @@ uniquely identified. It also cold-spawns the built daemon from `dist/`.
 ## Develop
 
 ```bash
-npm test          # vitest (unit + jsdom + integration)
+npm test          # vitest (unit + jsdom + integration; excludes real Chrome)
+npm run test:e2e  # headed installed-Chrome round trip
 npm run build     # tsc -> dist/
 ```
 
