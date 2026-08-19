@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { resolvePaths, ensureDir, generateToken, writeRuntime, readRuntime } from '../../src/daemon/paths.js';
@@ -11,10 +11,14 @@ describe('resolvePaths', () => {
     expect(p.tokenFile).toBe(join('/custom/home', 'token'));
     expect(p.portFile).toBe(join('/custom/home', 'port'));
     expect(p.pidFile).toBe(join('/custom/home', 'daemon.pid'));
+    expect(p.queueFile).toBe(join('/custom/home', 'queue.json'));
   });
 
-  it('uses an explicit home over the default', () => {
-    const p = resolvePaths({ home: '/explicit', env: {} });
+  it('uses an explicit runtime directory even when the environment has a default', () => {
+    const p = resolvePaths({
+      home: '/explicit',
+      env: { WEB_PICKER_HOME: '/environment-default' },
+    });
     expect(p.dir).toBe('/explicit');
   });
 
@@ -52,9 +56,20 @@ describe('runtime read/write', () => {
   it('writes the token file with 0600 permissions', () => {
     const p = resolvePaths({ home });
     ensureDir(p);
+    writeFileSync(p.tokenFile, 'old-secret', { mode: 0o644 });
+    chmodSync(p.tokenFile, 0o644);
     writeRuntime(p, { port: 8787, token: 'secret', pid: 1 });
     const mode = statSync(p.tokenFile).mode & 0o777;
     expect(mode).toBe(0o600);
+  });
+
+  it('tightens an existing runtime directory to 0700', () => {
+    const p = resolvePaths({ home });
+    chmodSync(home, 0o755);
+
+    ensureDir(p);
+
+    expect(statSync(home).mode & 0o777).toBe(0o700);
   });
 
   it('returns an empty object when nothing has been written', () => {

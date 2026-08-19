@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createState } from './state.js';
 import { DEFAULT_PORT } from './state.js';
 import { createServer } from './server.js';
+import { createFileQueueStore } from './file-persistence.js';
 import { resolvePaths, ensureDir, generateToken, writeRuntime } from './paths.js';
 
 export const EXPECTED_EXTENSION_ORIGIN = 'chrome-extension://mnglicpibnccgcifnndemfpidkcgboli';
@@ -40,8 +41,19 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Runnin
 
   const token = generateToken();
   const version = readVersion();
-  const state = createState();
-  const server = createServer({ state, version, token, expectedExtensionOrigin: EXPECTED_EXTENSION_ORIGIN });
+  const queueStore = createFileQueueStore(paths);
+  const recovered = queueStore.load();
+  const state = createState({
+    initialRequests: recovered.requests,
+    persistence: queueStore,
+  });
+  const server = createServer({
+    state,
+    version,
+    token,
+    expectedExtensionOrigin: EXPECTED_EXTENSION_ORIGIN,
+    queueWarning: recovered.warning,
+  });
 
   const requestedPort = opts.port ?? Number.parseInt(process.env.WEB_PICKER_PORT ?? '', 10);
   const port = Number.isFinite(requestedPort) ? requestedPort : DEFAULT_PORT;

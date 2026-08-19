@@ -154,8 +154,13 @@ describe('extension HTTP api — exact extension origin', () => {
     const api = extensionApi(state);
     const res = await api(req({ method: 'GET', path: '/status', headers: { origin: EXTENSION_ORIGIN } }));
     expect(res.status).toBe(200);
-    const b = res.body as { activeSessionId: string | null; queue: Array<{ status: string }> };
+    const b = res.body as {
+      activeSessionId: string | null;
+      queue: Array<{ status: string }>;
+      warning: 'queue-corrupt' | null;
+    };
     expect(b.activeSessionId).toBe(null);
+    expect(b.warning).toBe(null);
     expect(b.queue).toHaveLength(1);
     expect(b.queue[0].status).toBe('pending');
   });

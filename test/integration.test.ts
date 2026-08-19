@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -55,6 +55,10 @@ async function postCapture(port: number, payload: CapturePayload) {
   });
 }
 
+async function responseBody(response: Response): Promise<Record<string, unknown>> {
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
 describe('integration: pick -> queue -> MCP list/get -> resolve (in-process)', () => {
   let home: string;
   let daemon: Awaited<ReturnType<typeof startDaemon>>;
@@ -69,6 +73,11 @@ describe('integration: pick -> queue -> MCP list/get -> resolve (in-process)', (
   });
 
   it('reproduces the full round trip and disambiguates a decoy element', async () => {
+    const healthyStatus = await fetch(`http://127.0.0.1:${daemon.port}/status`, {
+      headers: { origin: EXTENSION_ORIGIN },
+    });
+    expect((await responseBody(healthyStatus)).warning).toBe(null);
+
     // Three lookalike "저장" buttons under different landmarks — the decoy proof.
     await postCapture(daemon.port, capture('button.btn', 'header', '저장', 'ignore'));
     const target = capture('main section button.btn', 'main', '저장', 'make the main save button blue');
@@ -141,4 +150,88 @@ describe('integration: cold spawn from built dist', () => {
       rmSync(home, { recursive: true, force: true });
     }
   }, 30_000);
+});
+
+describe('integration: durable queue recovery', () => {
+  let home: string;
+  let daemon: Awaited<ReturnType<typeof startDaemon>>;
+  let daemonRunning: boolean;
+
+  beforeEach(async () => {
+    home = mkdtempSync(join(tmpdir(), 'wp-restart-'));
+    daemon = await startDaemon({ home, port: 0 });
+    daemonRunning = true;
+  });
+
+  afterEach(async () => {
+    if (daemonRunning) await daemon.close();
+    rmSync(home, { recursive: true, force: true });
+  });
+
+  it('recovers claimed work as pending and preserves resolved work without sessions', async () => {
+    const firstResponse = await postCapture(
+      daemon.port,
+      capture('#first', 'main', 'First', 'first request'),
+    );
+    const firstId = String((await responseBody(firstResponse)).id);
+    const transport = createHttpTransport(daemon);
+    await transport.send('register', { sessionId: 'session-secret', label: 'Agent' });
+    await transport.send('claim', { sessionId: 'session-secret' });
+    expect((await transport.send('pull')).requests).toHaveLength(1);
+
+    const secondResponse = await postCapture(
+      daemon.port,
+      capture('#second', 'main', 'Second', 'second request'),
+    );
+    const secondId = String((await responseBody(secondResponse)).id);
+    await daemon.close();
+    daemonRunning = false;
+
+    const paths = resolvePaths({ home, env: {} });
+    expect(readFileSync(paths.queueFile, 'utf8')).not.toContain('session-secret');
+
+    daemon = await startDaemon({ home, port: 0 });
+    daemonRunning = true;
+    const recovered = await createHttpTransport(daemon).send('list');
+    expect(recovered.requests.map((row: { id: string }) => row.id)).toEqual([firstId, secondId]);
+    expect(recovered.requests.map((row: { status: string }) => row.status)).toEqual(['pending', 'pending']);
+
+    await createHttpTransport(daemon).send('resolve', { id: firstId });
+    await daemon.close();
+    daemonRunning = false;
+
+    daemon = await startDaemon({ home, port: 0 });
+    daemonRunning = true;
+    const afterResolve = await createHttpTransport(daemon).send('list');
+    expect(afterResolve.requests.map((row: { id: string; status: string }) => [row.id, row.status]))
+      .toEqual([[firstId, 'resolved'], [secondId, 'pending']]);
+    expect(readFileSync(paths.queueFile, 'utf8')).not.toContain('session-secret');
+  });
+});
+
+describe('integration: corrupt queue warning', () => {
+  it('quarantines the queue and exposes only the warning code in status', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'wp-corrupt-'));
+    const paths = resolvePaths({ home, env: {} });
+    writeFileSync(paths.queueFile, '{broken SECRET_CAPTURE', { mode: 0o600 });
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let daemon: Awaited<ReturnType<typeof startDaemon>> | undefined;
+
+    try {
+      daemon = await startDaemon({ home, port: 0 });
+      const response = await fetch(`http://127.0.0.1:${daemon.port}/status`, {
+        headers: { origin: EXTENSION_ORIGIN },
+      });
+      const body = await responseBody(response);
+
+      expect(response.status).toBe(200);
+      expect(body.warning).toBe('queue-corrupt');
+      expect(JSON.stringify(body)).not.toContain('SECRET_CAPTURE');
+      expect(warning.mock.calls.flat().join(' ')).not.toContain('SECRET_CAPTURE');
+    } finally {
+      if (daemon) await daemon.close();
+      warning.mockRestore();
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
 });

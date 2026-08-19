@@ -12,6 +12,7 @@ import { capturePayloadSchema } from '../shared/schema.js';
 export interface ExtensionApiConfig {
   version: string;
   expectedExtensionOrigin: string;
+  queueWarning?: 'queue-corrupt' | null;
 }
 
 function json(status: number, body: unknown): ApiResponse {
@@ -47,6 +48,7 @@ export function createExtensionApi(state: State, config: ExtensionApiConfig): Ap
       return json(200, {
         activeSessionId: state.activeSessionId,
         queue: state.list().map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt })),
+        warning: config.queueWarning ?? null,
       });
     }
 

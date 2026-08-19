@@ -5,7 +5,13 @@
  * touching the real user home. IO helpers are thin wrappers on top.
  */
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +21,7 @@ export interface Paths {
   tokenFile: string;
   portFile: string;
   configFile: string;
+  queueFile: string;
 }
 
 export interface ResolveOptions {
@@ -27,8 +34,8 @@ export interface ResolveOptions {
 export function resolvePaths(opts: ResolveOptions = {}): Paths {
   const env = opts.env ?? process.env;
   const base =
-    env.WEB_PICKER_HOME ??
     opts.home ??
+    env.WEB_PICKER_HOME ??
     join(opts.homedir ?? homedir(), '.web-picker');
   return {
     dir: base,
@@ -36,13 +43,13 @@ export function resolvePaths(opts: ResolveOptions = {}): Paths {
     tokenFile: join(base, 'token'),
     portFile: join(base, 'port'),
     configFile: join(base, 'config.json'),
+    queueFile: join(base, 'queue.json'),
   };
 }
 
 export function ensureDir(paths: Paths): void {
-  if (!existsSync(paths.dir)) {
-    mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
-  }
+  mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
+  chmodSync(paths.dir, 0o700);
 }
 
 /** 32 random bytes as hex — the shared secret guarding the IPC endpoint. */
@@ -60,6 +67,7 @@ export function writeRuntime(paths: Paths, runtime: Runtime): void {
   ensureDir(paths);
   // token is user-only readable; port/pid are not secret
   writeFileSync(paths.tokenFile, runtime.token, { mode: 0o600 });
+  chmodSync(paths.tokenFile, 0o600);
   writeFileSync(paths.portFile, String(runtime.port));
   writeFileSync(paths.pidFile, String(runtime.pid));
 }

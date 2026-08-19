@@ -19,6 +19,7 @@ export interface ServerDeps {
   version: string;
   token: string;
   expectedExtensionOrigin: string;
+  queueWarning?: 'queue-corrupt' | null;
   host?: string;
   logger?: Logger;
 }
@@ -71,6 +72,7 @@ export function createServer(deps: ServerDeps): RunningServer {
   const extensionApi = createExtensionApi(deps.state, {
     version: deps.version,
     expectedExtensionOrigin: deps.expectedExtensionOrigin,
+    queueWarning: deps.queueWarning,
   });
   const ipcApi = createIpcApi(deps.state, { token: deps.token });
 
