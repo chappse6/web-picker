@@ -112,9 +112,16 @@ function occupiedPortError(port: number): Error {
   return new Error(`Port ${port} is occupied by a non-Web Picker process.`);
 }
 
+function environmentPort(): number {
+  const raw = process.env.WEB_PICKER_PORT;
+  if (!raw?.trim()) return DEFAULT_PORT;
+  const port = Number(raw);
+  return Number.isInteger(port) && port >= 0 && port <= 65_535 ? port : DEFAULT_PORT;
+}
+
 export function createLauncher(opts: LauncherOptions = {}): DaemonLauncher {
   const home = opts.home ?? resolvePaths().dir;
-  const port = opts.port ?? DEFAULT_PORT;
+  const port = opts.port ?? environmentPort();
   const daemonEntry = opts.daemonEntry ?? defaultDaemonEntry();
   const spawnDaemon = opts.spawnDaemon ?? defaultSpawn;
   const readyTimeoutMs = opts.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;

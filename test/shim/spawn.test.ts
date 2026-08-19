@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { createLauncher } from '../../src/shim/spawn.js';
 import { startDaemon } from '../../src/daemon/daemon.js';
 import { resolvePaths, writeRuntime } from '../../src/daemon/paths.js';
+import { DEFAULT_PORT } from '../../src/daemon/state.js';
 
 const PACKAGE_VERSION = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
@@ -31,10 +32,13 @@ function closeServer(server: http.Server): Promise<void> {
 
 describe('daemon launcher', () => {
   let home: string;
+  const originalWebPickerPort = process.env.WEB_PICKER_PORT;
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), 'wp-spawn-'));
   });
   afterEach(() => {
+    if (originalWebPickerPort === undefined) delete process.env.WEB_PICKER_PORT;
+    else process.env.WEB_PICKER_PORT = originalWebPickerPort;
     rmSync(home, { recursive: true, force: true });
   });
 
@@ -111,6 +115,31 @@ describe('daemon launcher', () => {
       expect(handle.token).toBeTruthy();
       const res = await fetch(`http://127.0.0.1:${handle.port}/version.json`);
       expect(res.status).toBe(200);
+    } finally {
+      await started?.close();
+    }
+  });
+
+  it.each([
+    ['uses WEB_PICKER_PORT=0 for an ephemeral daemon', '0', undefined, 0],
+    ['falls back to the default port for an invalid WEB_PICKER_PORT', 'invalid', undefined, DEFAULT_PORT],
+    ['prefers an explicit port over WEB_PICKER_PORT', '0', 0, 0],
+  ])('%s', async (_label, envPort, explicitPort, expectedPort) => {
+    process.env.WEB_PICKER_PORT = envPort;
+    let started: Awaited<ReturnType<typeof startDaemon>> | undefined;
+    let spawnPort: number | undefined;
+    const launcher = createLauncher({
+      home,
+      ...(explicitPort === undefined ? {} : { port: explicitPort }),
+      spawnDaemon: async ({ home: daemonHome, port }) => {
+        spawnPort = port;
+        started = await startDaemon({ home: daemonHome, port });
+      },
+    });
+
+    try {
+      await launcher.ensureRunning();
+      expect(spawnPort).toBe(expectedPort);
     } finally {
       await started?.close();
     }
