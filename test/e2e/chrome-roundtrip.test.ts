@@ -8,6 +8,7 @@ import { chromium, type BrowserContext } from 'playwright-core';
 import { startDaemon, type RunningDaemon } from '../../src/daemon/daemon.js';
 import { createClient, createHttpTransport, type WebPickerClient } from '../../src/shim/client.js';
 import { createLauncher } from '../../src/shim/spawn.js';
+import { composeChromeExtensionArguments } from './chrome-launch.js';
 import { startTestPageServer, type RunningTestPageServer } from './server.js';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -41,18 +42,13 @@ function requireChrome(): string | undefined {
 
 async function launchChrome(profileDir: string): Promise<BrowserContext> {
   const executablePath = requireChrome();
+  const extensionArguments = composeChromeExtensionArguments(join(ROOT, 'extension'));
   try {
     return await chromium.launchPersistentContext(profileDir, {
       channel: 'chrome',
       headless: false,
-      ignoreDefaultArgs: ['--disable-extensions'],
-      args: [
-        // Chrome 139+ gates the still-supported --disable-extensions-except
-        // test path in branded builds; keep it enabled for this clean profile.
-        '--disable-features=DisableDisableExtensionsExceptCommandLineSwitch',
-        `--disable-extensions-except=${join(ROOT, 'extension')}`,
-        `--load-extension=${join(ROOT, 'extension')}`,
-      ],
+      ignoreDefaultArgs: extensionArguments.ignoreDefaultArgs,
+      args: extensionArguments.args,
       ...(executablePath ? { executablePath } : {}),
     });
   } catch (error) {
