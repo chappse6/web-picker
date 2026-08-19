@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { captureElement, capturePayload, maskShape } from '../../extension/capture.js';
+import { captureElement, capturePayload, generateLocatorEvidence, maskShape } from '../../extension/capture.js';
 
 function setDom() {
   document.body.innerHTML = `
@@ -29,6 +29,28 @@ describe('maskShape', () => {
 });
 
 describe('captureElement — identity preservation', () => {
+  it('ranks a unique safe id first and reports high confidence', () => {
+    document.body.innerHTML = '<main><button id="profile-save">저장</button><button>저장</button></main>';
+    const target = document.getElementById('profile-save')!;
+
+    expect(generateLocatorEvidence(target)).toEqual(expect.objectContaining({
+      confidence: 'high',
+      candidates: expect.arrayContaining([
+        expect.objectContaining({ kind: 'id', value: '#profile-save', matchCount: 1, stability: 100 }),
+      ]),
+    }));
+    expect(captureElement(target).locatorEvidence.candidates.length).toBeGreaterThan(0);
+  });
+
+  it('keeps only sensitivity-checked data-testid and data-cy values', () => {
+    document.body.innerHTML = '<button data-testid="save-button" data-cy="token_abcdefghijklmnopqrstuvwxyz" data-user-id="42">저장</button>';
+
+    const json = JSON.stringify(generateLocatorEvidence(document.querySelector('button')!));
+    expect(json).toContain('save-button');
+    expect(json).not.toContain('token_abcdefghijklmnopqrstuvwxyz');
+    expect(json).not.toContain('42');
+  });
+
   it('preserves a short visible label for a button', () => {
     const el = document.getElementById('save-btn')!;
     const cap = captureElement(el);

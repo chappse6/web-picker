@@ -27,6 +27,11 @@ function payload(overrides: Partial<CapturePayload> = {}): CapturePayload {
       maskedOuterHTML: '<button class="btn primary">…</button>',
       landmark: null,
       visibleLabel: 'Save',
+      locatorEvidence: {
+        candidates: [{ kind: 'id', value: '#save-btn', matchCount: 1, stability: 100 }],
+        confidence: 'high',
+        reasons: ['unique-candidate'],
+      },
       ...(element ?? {}),
     },
     userQuestion: 'Make this button blue',
@@ -106,6 +111,43 @@ describe('extension HTTP api — origin allowlist', () => {
     );
     expect(res.status).toBe(400);
     expect(state.list()).toHaveLength(0);
+  });
+
+  async function expectRejected(body: CapturePayload) {
+    const state = createState();
+    const api = createExtensionApi(state, { version: '0.1.0' });
+    const res = await api(
+      req({
+        method: 'POST',
+        path: '/requests',
+        headers: { origin: 'http://localhost:3000' },
+        body,
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(state.list()).toHaveLength(0);
+  }
+
+  it('rejects more than eight locator candidates with 400', async () => {
+    const invalid = payload();
+    invalid.element.locatorEvidence.candidates = Array.from(
+      { length: 9 },
+      (_, index) => ({ kind: 'id', value: `#save-${index}`, matchCount: 1, stability: 100 }),
+    );
+
+    await expectRejected(invalid);
+  });
+
+  it('rejects locator stability above 100 with 400', async () => {
+    const invalid = payload();
+    invalid.element.locatorEvidence.candidates[0].stability = 101;
+
+    await expectRejected(invalid);
+  });
+
+  it('rejects a user question longer than 2,000 characters with 400', async () => {
+    await expectRejected(payload({ userQuestion: 'q'.repeat(2_001) }));
   });
 
   it('GET /status returns queue summary and active session', async () => {

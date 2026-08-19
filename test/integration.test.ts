@@ -33,6 +33,11 @@ function capture(selector: string, landmark: string, visibleLabel: string, quest
       maskedOuterHTML: '<button class="btn">…</button>',
       landmark,
       visibleLabel,
+      locatorEvidence: {
+        candidates: [{ kind: 'css-path', value: selector, matchCount: 1, stability: 45 }],
+        confidence: 'medium',
+        reasons: ['unique-candidate'],
+      },
     },
     userQuestion: question,
     createdAt: '2026-07-18T00:00:00.000Z',

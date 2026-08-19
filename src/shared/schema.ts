@@ -19,6 +19,22 @@ export const ancestorSummarySchema = z.object({
   role: z.string().nullable(),
 });
 
+export const locatorKindSchema = z.enum(['id', 'test-id', 'aria', 'landmark', 'css-path']);
+export const locatorReasonSchema = z.enum(['unique-candidate', 'no-unique-candidate']);
+
+export const locatorCandidateSchema = z.object({
+  kind: locatorKindSchema,
+  value: z.string(),
+  matchCount: z.number().int().min(0),
+  stability: z.number().int().min(0).max(100),
+});
+
+export const locatorEvidenceSchema = z.object({
+  candidates: z.array(locatorCandidateSchema).max(8),
+  confidence: z.enum(['high', 'medium', 'low']),
+  reasons: z.array(locatorReasonSchema),
+});
+
 export const capturedElementSchema = z.object({
   selector: z.string().min(1),
   tagName: z.string(),
@@ -34,6 +50,7 @@ export const capturedElementSchema = z.object({
   maskedOuterHTML: z.string(),
   landmark: z.string().nullable(),
   visibleLabel: z.string().nullable(),
+  locatorEvidence: locatorEvidenceSchema,
 });
 
 export const capturePayloadSchema = z.object({
@@ -41,7 +58,7 @@ export const capturePayloadSchema = z.object({
   title: z.string(),
   viewport: z.object({ width: z.number(), height: z.number() }),
   element: capturedElementSchema,
-  userQuestion: z.string(),
+  userQuestion: z.string().max(2_000),
   createdAt: z.string(),
   source: z.literal('chrome-extension'),
 });

@@ -31,6 +31,23 @@ export interface AncestorSummary {
   role: string | null;
 }
 
+export type LocatorKind = 'id' | 'test-id' | 'aria' | 'landmark' | 'css-path';
+
+export type LocatorReason = 'unique-candidate' | 'no-unique-candidate';
+
+export interface LocatorCandidate {
+  kind: LocatorKind;
+  value: string;
+  matchCount: number;
+  stability: number;
+}
+
+export interface LocatorEvidence {
+  candidates: LocatorCandidate[];
+  confidence: 'high' | 'medium' | 'low';
+  reasons: LocatorReason[];
+}
+
 /**
  * The captured element. Carries the *minimum identifying clues* an agent needs
  * to locate the element in a codebase, while never leaking sensitive values.
@@ -56,6 +73,8 @@ export interface CapturedElement {
   landmark: string | null;
   /** short visible label preserved for target identification (non-sensitive only). */
   visibleLabel: string | null;
+  /** ranked, privacy-checked selectors that can help locate this element. */
+  locatorEvidence: LocatorEvidence;
 }
 
 /** Payload sent by the extension to the daemon when the user submits a pick. */

@@ -14,8 +14,10 @@ const BULLET = '•'; // •
 const MAX_LABEL = 60;
 const MAX_SHAPE = 120;
 const MAX_ANCESTORS = 4;
+const LOCATOR_LIMIT = 8;
 
 const ATTR_ALLOWLIST = ['id', 'class', 'role', 'aria-label', 'name'];
+const SAFE_TEST_ATTRS = ['data-testid', 'data-cy'];
 
 const SENSITIVE_NAME = /pass(word)?|secret|token|auth|cookie|email|otp|ssn|card|cvv|credit|api[-_]?key/i;
 const LANDMARK_TAGS = new Set(['header', 'nav', 'main', 'aside', 'footer', 'section', 'form']);
@@ -121,6 +123,47 @@ export function findLandmark(el) {
   return null;
 }
 
+function addCandidate(out, root, kind, value, stability) {
+  if (!value || looksSensitive(value) || out.some((item) => item.kind === kind && item.value === value)) return;
+  let matchCount = 0;
+  try {
+    matchCount = root.querySelectorAll(value).length;
+  } catch {
+    return;
+  }
+  out.push({ kind, value, matchCount, stability });
+}
+
+/** Generate ranked, privacy-checked selectors for resolving an element later. */
+export function generateLocatorEvidence(el) {
+  const root = el.ownerDocument;
+  const candidates = [];
+
+  if (el.id && !looksSensitive(el.id)) {
+    addCandidate(candidates, root, 'id', `#${cssEscape(el.id)}`, 100);
+  }
+  for (const name of SAFE_TEST_ATTRS) {
+    const value = collapse(el.getAttribute(name) || '');
+    if (value) addCandidate(candidates, root, 'test-id', `[${name}="${cssEscape(value)}"]`, 95);
+  }
+  const role = collapse(el.getAttribute('role') || '');
+  const aria = collapse(el.getAttribute('aria-label') || '');
+  if (role && aria && !looksSensitive(aria)) {
+    addCandidate(candidates, root, 'aria', `[role="${cssEscape(role)}"][aria-label="${cssEscape(aria)}"]`, 85);
+  }
+  const landmark = findLandmark(el);
+  if (landmark) addCandidate(candidates, root, 'landmark', `${landmark} ${el.tagName.toLowerCase()}`, 65);
+  addCandidate(candidates, root, 'css-path', buildSelector(el), 45);
+
+  candidates.sort((a, b) => Number(a.matchCount !== 1) - Number(b.matchCount !== 1) || b.stability - a.stability);
+  const ranked = candidates.slice(0, LOCATOR_LIMIT);
+  const best = ranked[0];
+  const confidence = best?.matchCount === 1 && best.stability >= 85 ? 'high' : best?.matchCount === 1 ? 'medium' : 'low';
+  const reasons = best?.matchCount === 1 ? ['unique-candidate'] : ['no-unique-candidate'];
+
+  return { candidates: ranked, confidence, reasons };
+}
+
 /** Derive a short, non-sensitive visible label, or null. */
 function deriveVisibleLabel(el, rawText) {
   const tag = el.tagName.toLowerCase();
@@ -168,6 +211,7 @@ export function captureElement(el) {
     maskedOuterHTML: maskOuterHTML(el),
     landmark: findLandmark(el),
     visibleLabel: deriveVisibleLabel(el, rawText),
+    locatorEvidence: generateLocatorEvidence(el),
   };
 }
 
