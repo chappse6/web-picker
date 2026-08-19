@@ -99,6 +99,17 @@ export interface WebRequest {
   resolvedAt: number | null;
 }
 
+/** Versioned durable representation of the daemon request queue. */
+export interface QueueSnapshot {
+  schemaVersion: 1;
+  requests: WebRequest[];
+}
+
+/** Synchronous durability boundary used by the pure queue state machine. */
+export interface QueuePersistence {
+  save(snapshot: QueueSnapshot): void;
+}
+
 /** A registered MCP session (agent-neutral). */
 export interface SessionInfo {
   id: string;

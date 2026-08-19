@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createState, DEFAULT_PORT } from '../../src/daemon/state.js';
-import type { CapturePayload } from '../../src/shared/types.js';
+import type {
+  CapturePayload,
+  QueueSnapshot,
+  Status,
+  WebRequest,
+} from '../../src/shared/types.js';
 
 function payload(overrides: Partial<CapturePayload> = {}): CapturePayload {
   const { element, ...rest } = overrides;
@@ -34,6 +39,42 @@ function payload(overrides: Partial<CapturePayload> = {}): CapturePayload {
     createdAt: '2026-07-18T00:00:00.000Z',
     source: 'chrome-extension',
     ...rest,
+  };
+}
+
+function request(
+  id: string,
+  status: Status,
+  createdAt: number,
+  resolvedAt: number | null = status === 'resolved' ? createdAt : null,
+): WebRequest {
+  return {
+    id,
+    payload: payload({ userQuestion: id }),
+    status,
+    createdAt,
+    claimedAt: status === 'claimed' ? createdAt : null,
+    resolvedAt,
+  };
+}
+
+function controlledPersistence() {
+  let failure: Error | null = null;
+  let latest: QueueSnapshot | null = null;
+
+  return {
+    persistence: {
+      save(snapshot: QueueSnapshot) {
+        latest = snapshot;
+        if (failure) throw failure;
+      },
+    },
+    failWith(error: Error | null) {
+      failure = error;
+    },
+    latest() {
+      return latest;
+    },
   };
 }
 
@@ -163,16 +204,140 @@ describe('request queue', () => {
     expect(s.get(req.id)?.status).toBe('resolved');
   });
 
-  it('resolve on an already-resolved request returns false', () => {
+  it('resolve on an already-resolved known request succeeds idempotently', () => {
     const s = createState();
     const req = s.enqueue(payload());
     s.resolve(req.id);
-    expect(s.resolve(req.id)).toBe(false);
+    expect(s.resolve(req.id)).toBe(true);
   });
 
   it('resolve on an unknown id returns false', () => {
     const s = createState();
     expect(s.resolve('does-not-exist')).toBe(false);
+  });
+});
+
+describe('transactional queue persistence', () => {
+  it('rolls back enqueue state, identity sequence, and notification when save fails', () => {
+    let attemptedId: string | undefined;
+    let shouldFail = true;
+    const state = createState({
+      now: () => 1_000,
+      persistence: {
+        save(snapshot) {
+          attemptedId = snapshot.requests[0]?.id;
+          if (shouldFail) throw new Error('disk full');
+        },
+      },
+    });
+    let notifications = 0;
+    state.subscribe(() => {
+      notifications += 1;
+    });
+
+    expect(() => state.enqueue(payload())).toThrow('disk full');
+    expect(state.list()).toEqual([]);
+    expect(notifications).toBe(0);
+
+    shouldFail = false;
+    const committed = state.enqueue(payload());
+    expect(committed.id).toBe(attemptedId);
+    expect(notifications).toBe(1);
+  });
+
+  it('rolls back pull without mutating existing request objects when save fails', () => {
+    const store = controlledPersistence();
+    const state = createState({ persistence: store.persistence });
+    const original = state.enqueue(payload());
+    store.failWith(new Error('disk full'));
+
+    expect(() => state.pull()).toThrow('disk full');
+    expect(state.list()[0]).toBe(original);
+    expect(state.get(original.id)).toBe(original);
+    expect(original.status).toBe('pending');
+    expect(original.claimedAt).toBe(null);
+  });
+
+  it('rolls back resolve without mutating existing request objects when save fails', () => {
+    const store = controlledPersistence();
+    const state = createState({ persistence: store.persistence });
+    const original = state.enqueue(payload());
+    const claimed = state.pull()[0];
+    expect(claimed).not.toBe(original);
+    store.failWith(new Error('disk full'));
+
+    expect(() => state.resolve(claimed.id)).toThrow('disk full');
+    expect(state.list()[0]).toBe(claimed);
+    expect(state.get(claimed.id)).toBe(claimed);
+    expect(claimed.status).toBe('claimed');
+    expect(claimed.resolvedAt).toBe(null);
+  });
+
+  it('loads claimed requests as pending and caps resolved history at 50', () => {
+    const claimed = request('claimed', 'claimed', 3);
+    const initialRequests = [
+      request('pending-1', 'pending', 1),
+      request('pending-2', 'pending', 2),
+      claimed,
+      ...Array.from({ length: 55 }, (_, index) =>
+        request(`resolved-${index}`, 'resolved', 100 + index, 1_000 + index),
+      ),
+    ];
+
+    const state = createState({ initialRequests });
+    const rows = state.list();
+
+    expect(rows.filter((row) => row.status !== 'resolved')).toHaveLength(3);
+    expect(rows.filter((row) => row.status === 'resolved')).toHaveLength(50);
+    expect(rows.some((row) => row.status === 'claimed')).toBe(false);
+    expect(rows.filter((row) => row.status === 'resolved').map((row) => row.id))
+      .toEqual(Array.from({ length: 50 }, (_, index) => `resolved-${index + 5}`));
+    expect(claimed.status).toBe('claimed');
+    expect(claimed.claimedAt).toBe(3);
+  });
+
+  it('returns claimed work to pending when heartbeat expires', () => {
+    let now = 0;
+    const store = controlledPersistence();
+    const state = createState({
+      now: () => now,
+      heartbeatTimeoutMs: 10,
+      persistence: store.persistence,
+    });
+    state.register('agent', 'Agent');
+    state.claim('agent');
+    state.enqueue(payload());
+    state.pull();
+
+    now = 11;
+    state.sweep();
+
+    expect(state.activeSessionId).toBe(null);
+    expect(state.list()[0].status).toBe('pending');
+    expect(state.list()[0].claimedAt).toBe(null);
+    expect(store.latest()?.requests[0]?.status).toBe('pending');
+  });
+
+  it('rolls back heartbeat expiry requeue and occupancy when save fails', () => {
+    let now = 0;
+    const store = controlledPersistence();
+    const state = createState({
+      now: () => now,
+      heartbeatTimeoutMs: 10,
+      persistence: store.persistence,
+    });
+    state.register('agent', 'Agent');
+    state.claim('agent');
+    state.enqueue(payload());
+    const claimed = state.pull()[0];
+    store.failWith(new Error('disk full'));
+
+    now = 11;
+    expect(() => state.sweep()).toThrow('disk full');
+    expect(state.activeSessionId).toBe('agent');
+    expect(state.list()[0]).toBe(claimed);
+    expect(claimed.status).toBe('claimed');
+    expect(claimed.claimedAt).toBe(0);
   });
 });
 
