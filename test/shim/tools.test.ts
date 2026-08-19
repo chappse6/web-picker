@@ -147,6 +147,33 @@ describe('MCP tools', () => {
     expect(t).toContain('visibleLabel: 저장');
   });
 
+  it('shows ranked locator evidence and masking facts', async () => {
+    const row = reqRow('req_1');
+    row.payload.element.dataset = ['analyticsKey'];
+    row.payload.element.locatorEvidence = {
+      candidates: [
+        { kind: 'id', value: '#profile-save', matchCount: 1, stability: 100 },
+        { kind: 'aria', value: '[aria-label="Save profile"]', matchCount: 1, stability: 85 },
+      ],
+      confidence: 'high',
+      reasons: ['unique-candidate'],
+    };
+    const { client } = fakeClient({
+      async get(id) {
+        return id === 'req_1' ? row : null;
+      },
+    });
+
+    const output = (await createTools(client).get_web_request({ id: 'req_1' })).content[0].text;
+
+    expect(output).toContain('locator confidence: high');
+    expect(output).toContain('1. id #profile-save — 1 match — stability 100');
+    expect(output).toContain('2. aria [aria-label="Save profile"] — 1 match — stability 85');
+    expect(output).toContain('reason codes: unique-candidate');
+    expect(output).toContain('dataset keys: analyticsKey');
+    expect(output).toContain('masking: text-shaped, values-removed');
+  });
+
   it('get_web_request errors on unknown id', async () => {
     const { client } = fakeClient();
     const r = await createTools(client).get_web_request({ id: 'missing' });

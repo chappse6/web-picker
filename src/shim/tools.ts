@@ -26,6 +26,7 @@ function summarizeRow(r: WebRequest): string {
 
 function detail(r: WebRequest): string {
   const el = r.payload.element;
+  const evidence = el.locatorEvidence;
   const lines = [
     `id: ${r.id}`,
     `status: ${r.status}`,
@@ -45,6 +46,15 @@ function detail(r: WebRequest): string {
     `  rect: ${el.rect.width}x${el.rect.height} @ (${el.rect.x},${el.rect.y})`,
     `  maskedText: ${el.maskedText}`,
     `  maskedOuterHTML: ${el.maskedOuterHTML}`,
+    '',
+    'locator evidence:',
+    `  locator confidence: ${evidence.confidence}`,
+    `  reason codes: ${evidence.reasons.join(', ') || '(none)'}`,
+    `  dataset keys: ${el.dataset.join(', ') || '(none)'}`,
+    '  masking: text-shaped, values-removed',
+    ...evidence.candidates.map((candidate, index) =>
+      `  ${index + 1}. ${candidate.kind} ${candidate.value} — ${candidate.matchCount} ${candidate.matchCount === 1 ? 'match' : 'matches'} — stability ${candidate.stability}`,
+    ),
   ];
   return lines.join('\n');
 }
