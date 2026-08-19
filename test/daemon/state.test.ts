@@ -23,6 +23,11 @@ function payload(overrides: Partial<CapturePayload> = {}): CapturePayload {
       maskedOuterHTML: '<button class="btn primary">…</button>',
       landmark: null,
       visibleLabel: 'Save',
+      locatorEvidence: {
+        candidates: [{ kind: 'id', value: '#save-btn', matchCount: 1, stability: 100 }],
+        confidence: 'high',
+        reasons: ['unique-candidate'],
+      },
       ...(element ?? {}),
     },
     userQuestion: 'Make this button blue',

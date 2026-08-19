@@ -29,6 +29,11 @@ function reqRow(id = 'r1'): WebRequest {
         maskedOuterHTML: '<button>',
         landmark: 'footer',
         visibleLabel: '저장',
+        locatorEvidence: {
+          candidates: [{ kind: 'id', value: '#save-btn', matchCount: 1, stability: 100 }],
+          confidence: 'high',
+          reasons: ['unique-candidate'],
+        },
       },
       userQuestion: 'make it blue',
       createdAt: '2026-07-18T00:00:00.000Z',
