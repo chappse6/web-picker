@@ -98,6 +98,32 @@ describe('extension runtime API', () => {
       .resolves.toEqual({ ok: true, data: { ok: true, released: null } });
   });
 
+  it.each([
+    ['missing create payload', { type: 'web-picker:create-request' }],
+    ['null create payload', { type: 'web-picker:create-request', payload: null }],
+    ['malformed create payload', { type: 'web-picker:create-request', payload: { source: 'chrome-extension' } }],
+    ['create payload without locator evidence', (() => {
+      const payload = validPayload();
+      delete payload.element.locatorEvidence;
+      return { type: 'web-picker:create-request', payload };
+    })()],
+    ['status payload', { type: 'web-picker:get-status', payload: { ignored: true } }],
+    ['release payload', { type: 'web-picker:release', payload: { ignored: true } }],
+  ])('rejects %s as invalid before transport', async (_label, message) => {
+    const transport = deps();
+
+    const result = await handleRuntimeMessage(
+      message,
+      { tab: { url: 'http://localhost:3000/' } },
+      transport,
+    );
+
+    expect(result).toEqual({ ok: false, error: { code: 'invalid-message', status: 400 } });
+    expect(transport.postRequest).not.toHaveBeenCalled();
+    expect(transport.getStatus).not.toHaveBeenCalled();
+    expect(transport.release).not.toHaveBeenCalled();
+  });
+
   it('rejects unknown messages without touching transport', async () => {
     const transport = deps();
     const result = await handleRuntimeMessage(
