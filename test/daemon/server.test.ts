@@ -93,6 +93,7 @@ describe('extension HTTP api — exact extension origin', () => {
       }),
     );
     expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'forbidden-origin' });
     expect(state.list()).toHaveLength(0);
   });
 
@@ -108,6 +109,31 @@ describe('extension HTTP api — exact extension origin', () => {
       }),
     );
     expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'invalid-payload' });
+    expect(state.list()).toHaveLength(0);
+  });
+
+  it('returns a safe 507 when durable enqueue fails and leaves the queue unchanged', async () => {
+    const state = createState({
+      persistence: {
+        save() {
+          throw new Error('SECRET_CAPTURE persistence detail');
+        },
+      },
+    });
+    const api = extensionApi(state);
+
+    const res = await api(
+      req({
+        method: 'POST',
+        path: '/requests',
+        headers: { origin: EXTENSION_ORIGIN },
+        body: payload(),
+      }),
+    );
+
+    expect(res).toEqual({ status: 507, body: { error: 'persistence-failed' } });
+    expect(JSON.stringify(res)).not.toContain('SECRET_CAPTURE');
     expect(state.list()).toHaveLength(0);
   });
 
@@ -285,6 +311,15 @@ describe('IPC api — token guard', () => {
 });
 
 describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
+  function serializedPayloadOfSize(bytes: number): string {
+    const empty = JSON.stringify(payload({ title: '' }));
+    const fillBytes = bytes - Buffer.byteLength(empty);
+    if (fillBytes < 0) throw new Error('requested fixture is too small');
+    const body = JSON.stringify(payload({ title: 'x'.repeat(fillBytes) }));
+    expect(Buffer.byteLength(body)).toBe(bytes);
+    return body;
+  }
+
   it('serves extension and IPC over a real socket on 127.0.0.1', async () => {
     const state = createState();
     const server = createServer({ state, version: '0.1.0', token: 'sock-token', expectedExtensionOrigin: EXTENSION_ORIGIN });
@@ -351,6 +386,95 @@ describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
 
       expect(res.status).toBe(403);
       expect(res.headers.get('access-control-allow-origin')).toBe(EXTENSION_ORIGIN);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('accepts a serialized request body of exactly 64 KiB', async () => {
+    const state = createState();
+    const server = createServer({
+      state,
+      version: '0.1.0',
+      token: 'x',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
+    const { port } = await server.listen(0);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, {
+        method: 'POST',
+        headers: { origin: EXTENSION_ORIGIN, 'content-type': 'application/json' },
+        body: serializedPayloadOfSize(64 * 1024),
+      });
+
+      expect(res.status).toBe(200);
+      expect(state.list()).toHaveLength(1);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('returns 413 before enqueue when serialized body exceeds 64 KiB by one byte', async () => {
+    const state = createState();
+    const server = createServer({
+      state,
+      version: '0.1.0',
+      token: 'x',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
+    const { port } = await server.listen(0);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, {
+        method: 'POST',
+        headers: { origin: EXTENSION_ORIGIN, 'content-type': 'application/json' },
+        body: serializedPayloadOfSize((64 * 1024) + 1),
+      });
+
+      expect(res.status).toBe(413);
+      expect(await res.json()).toEqual({ error: 'payload-too-large' });
+      expect(state.list()).toHaveLength(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('logs only safe request metadata when persistence fails', async () => {
+    const logs: Array<{ message: string; meta: unknown }> = [];
+    const state = createState({
+      persistence: {
+        save() {
+          throw new Error('SECRET_CAPTURE persistence detail');
+        },
+      },
+    });
+    const logger = {
+      info() {},
+      warn(message: string, meta?: unknown) { logs.push({ message, meta }); },
+      error(message: string, meta?: unknown) { logs.push({ message, meta }); },
+    };
+    const server = createServer({
+      state,
+      version: '0.1.0',
+      token: 'x',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+      logger,
+    });
+    const { port } = await server.listen(0);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, {
+        method: 'POST',
+        headers: { origin: EXTENSION_ORIGIN, 'content-type': 'application/json' },
+        body: JSON.stringify(payload()),
+      });
+
+      expect(res.status).toBe(507);
+      expect(await res.json()).toEqual({ error: 'persistence-failed' });
+      expect(logs).toContainEqual({
+        message: 'request rejected',
+        meta: { code: 'persistence-failed', method: 'POST', path: '/requests' },
+      });
+      expect(JSON.stringify(logs)).not.toContain('SECRET_CAPTURE');
+      expect(state.list()).toHaveLength(0);
     } finally {
       await server.close();
     }

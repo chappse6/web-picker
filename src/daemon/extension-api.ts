@@ -32,16 +32,20 @@ export function createExtensionApi(state: State, config: ExtensionApiConfig): Ap
     }
 
     if (!originAllowed(req, config.expectedExtensionOrigin)) {
-      return json(403, { error: 'forbidden origin' });
+      return json(403, { error: 'forbidden-origin' });
     }
 
     if (req.method === 'POST' && req.path === '/requests') {
       const parsed = capturePayloadSchema.safeParse(req.body);
       if (!parsed.success) {
-        return json(400, { error: 'invalid capture payload', issues: parsed.error.issues });
+        return json(400, { error: 'invalid-payload' });
       }
-      const request = state.enqueue(parsed.data);
-      return json(200, { id: request.id, status: request.status });
+      try {
+        const request = state.enqueue(parsed.data);
+        return json(200, { id: request.id, status: request.status });
+      } catch {
+        return json(507, { error: 'persistence-failed' });
+      }
     }
 
     if (req.method === 'GET' && req.path === '/status') {

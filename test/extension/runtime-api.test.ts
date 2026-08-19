@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleRuntimeMessage } from '../../extension/runtime-api.js';
+import { getStatus, getVersion, postRequest, release } from '../../extension/transport.js';
 
 function validPayload() {
   return {
@@ -147,5 +148,57 @@ describe('extension runtime API', () => {
       { tab: { url: 'http://localhost:3000/' } },
       transport,
     )).resolves.toEqual({ ok: false, error: { code: 'daemon-offline', status: 502 } });
+  });
+
+  it.each([
+    [400, 'invalid-payload'],
+    [403, 'forbidden-origin'],
+    [413, 'payload-too-large'],
+    [507, 'persistence-failed'],
+    [503, 'daemon-unavailable'],
+  ])('preserves %s/%s across the runtime relay', async (status, code) => {
+    const error = Object.assign(new Error(code), { status, code });
+    const transport = deps({ postRequest: vi.fn().mockRejectedValue(error) });
+
+    const result = await handleRuntimeMessage(
+      { type: 'web-picker:create-request', payload: validPayload() },
+      { tab: { url: 'http://localhost:3000/' } },
+      transport,
+    );
+
+    expect(result).toEqual({ ok: false, error: { status, code } });
+  });
+
+  it.each([
+    ['invalid-payload', '요소를 다시 선택해 요청을 작성해 주세요.'],
+    ['forbidden-origin', '확장 프로그램을 새로고침하거나 다시 설치해 주세요.'],
+    ['payload-too-large', '요청을 짧게 줄이거나 더 작은 요소를 다시 선택해 주세요.'],
+    ['persistence-failed', '디스크 여유 공간과 웹픽커 저장 폴더 권한을 확인해 주세요.'],
+    ['daemon-unavailable', '웹픽커 데몬을 시작하거나 도구 등록을 다시 실행해 주세요.'],
+  ])('provides static Korean guidance for %s without captured content', async (code, note) => {
+    const runtimeApi = await import('../../extension/runtime-api.js');
+
+    expect(runtimeApi.runtimeErrorGuidance?.(code)).toEqual({
+      title: '요청을 보낼 수 없습니다',
+      note,
+    });
+    expect(note).not.toContain('SECRET_CAPTURE');
+  });
+});
+
+describe('extension daemon transport', () => {
+  it.each([
+    ['create request', () => postRequest(validPayload()), 400, 'invalid-payload'],
+    ['status', () => getStatus(), 403, 'forbidden-origin'],
+    ['release', () => release(), 507, 'persistence-failed'],
+    ['version', () => getVersion(), 503, 'daemon-unavailable'],
+  ])('throws a typed response error for %s', async (_label, call, status, code) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ error: code }),
+      { status, headers: { 'content-type': 'application/json' } },
+    )));
+
+    await expect(call()).rejects.toMatchObject({ status, code, message: code });
+    vi.unstubAllGlobals();
   });
 });

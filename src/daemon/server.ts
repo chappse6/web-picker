@@ -10,7 +10,7 @@ import type { AddressInfo } from 'node:net';
 import type { State } from './state.js';
 import { DEFAULT_PORT } from './state.js';
 import type { ApiHandler, ApiRequest, Logger } from './http.js';
-import { silentLogger } from './http.js';
+import { HttpInputError, silentLogger } from './http.js';
 import { createExtensionApi } from './extension-api.js';
 import { createIpcApi } from './ipc-api.js';
 
@@ -30,22 +30,34 @@ export interface RunningServer {
 }
 
 const BIND_HOST = '127.0.0.1';
-const MAX_BODY_BYTES = 1_000_000;
+const MAX_BODY_BYTES = 64 * 1024;
+const SAFE_ERROR_CODES = new Set([
+  'invalid-payload',
+  'forbidden-origin',
+  'payload-too-large',
+  'persistence-failed',
+  'unauthorized',
+  'not-found',
+]);
 
 function readBody(req: http.IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
+    let settled = false;
     req.on('data', (c: Buffer) => {
+      if (settled) return;
       size += c.length;
       if (size > MAX_BODY_BYTES) {
-        reject(new Error('body too large'));
-        req.destroy();
+        settled = true;
+        reject(new HttpInputError(413, 'payload-too-large'));
         return;
       }
       chunks.push(c);
     });
     req.on('end', () => {
+      if (settled) return;
+      settled = true;
       if (chunks.length === 0) return resolve(undefined);
       const raw = Buffer.concat(chunks).toString('utf8');
       try {
@@ -54,8 +66,22 @@ function readBody(req: http.IncomingMessage): Promise<unknown> {
         resolve(undefined);
       }
     });
-    req.on('error', reject);
+    req.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
   });
+}
+
+function responseErrorCode(response: { status: number; body: unknown }): string {
+  const error = response.body && typeof response.body === 'object'
+    ? (response.body as { error?: unknown }).error
+    : undefined;
+  if (typeof error === 'string' && SAFE_ERROR_CODES.has(error)) return error;
+  if (response.status === 401) return 'unauthorized';
+  if (response.status === 404) return 'not-found';
+  return 'request-failed';
 }
 
 function lowercaseHeaders(headers: http.IncomingHttpHeaders): Record<string, string | undefined> {
@@ -77,13 +103,15 @@ export function createServer(deps: ServerDeps): RunningServer {
   const ipcApi = createIpcApi(deps.state, { token: deps.token });
 
   const server = http.createServer(async (rawReq, rawRes) => {
+    let requestPath = '/';
+    const corsHeaders = {
+      'access-control-allow-origin': deps.expectedExtensionOrigin,
+      'access-control-allow-headers': 'content-type, x-web-picker-token',
+      'access-control-allow-methods': 'GET, POST, OPTIONS',
+    };
     try {
       const url = new URL(rawReq.url ?? '/', `http://${host}`);
-      const corsHeaders = {
-        'access-control-allow-origin': deps.expectedExtensionOrigin,
-        'access-control-allow-headers': 'content-type, x-web-picker-token',
-        'access-control-allow-methods': 'GET, POST, OPTIONS',
-      };
+      requestPath = url.pathname;
 
       // Protected extension calls are made by the worker and preflight with its
       // pinned origin. Never reflect an arbitrary request origin.
@@ -104,13 +132,26 @@ export function createServer(deps: ServerDeps): RunningServer {
       };
       const handler: ApiHandler = url.pathname.startsWith('/ipc') ? ipcApi : extensionApi;
       const res = await handler(apiReq);
+      if (res.status >= 400) {
+        logger.warn('request rejected', {
+          code: responseErrorCode(res),
+          method: apiReq.method,
+          path: apiReq.path,
+        });
+      }
       const payload = JSON.stringify(res.body ?? {});
       rawRes.writeHead(res.status, { 'content-type': 'application/json', ...corsHeaders });
       rawRes.end(payload);
     } catch (err) {
-      logger.error('request handling failed', err);
-      rawRes.writeHead(500, { 'content-type': 'application/json' });
-      rawRes.end(JSON.stringify({ error: 'internal error' }));
+      const status = err instanceof HttpInputError ? err.status : 500;
+      const code = err instanceof HttpInputError ? err.code : 'internal-error';
+      logger.error('request handling failed', {
+        code,
+        method: rawReq.method ?? 'GET',
+        path: requestPath,
+      });
+      rawRes.writeHead(status, { 'content-type': 'application/json', ...corsHeaders });
+      rawRes.end(JSON.stringify({ error: code }));
     }
   });
 

@@ -1,9 +1,33 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLauncher } from '../../src/shim/spawn.js';
 import { startDaemon } from '../../src/daemon/daemon.js';
+import { resolvePaths, writeRuntime } from '../../src/daemon/paths.js';
+
+const PACKAGE_VERSION = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version as string;
+
+async function listenServer(
+  handler: http.RequestListener,
+): Promise<{ server: http.Server; port: number }> {
+  const server = http.createServer(handler);
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  return { server, port: (server.address() as AddressInfo).port };
+}
+
+function closeServer(server: http.Server): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+}
 
 describe('daemon launcher', () => {
   let home: string;
@@ -28,6 +52,51 @@ describe('daemon launcher', () => {
     }
   });
 
+  it('reuses recorded runtime only after matching version and authenticated IPC', async () => {
+    const token = 'recorded-secret';
+    const requests: Array<{ url: string; token: string | undefined; body: string }> = [];
+    const { server, port } = await listenServer((request, response) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer) => chunks.push(chunk));
+      request.on('end', () => {
+        requests.push({
+          url: request.url ?? '',
+          token: request.headers['x-web-picker-token'] as string | undefined,
+          body: Buffer.concat(chunks).toString('utf8'),
+        });
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify(
+          request.url === '/version.json'
+            ? { version: PACKAGE_VERSION }
+            : { ok: true },
+        ));
+      });
+    });
+    writeRuntime(resolvePaths({ home, env: {} }), { port, token, pid: process.pid });
+    let spawned = 0;
+
+    try {
+      const handle = await createLauncher({
+        home,
+        port,
+        spawnDaemon: () => { spawned += 1; },
+      }).ensureRunning();
+
+      expect(handle).toEqual({ port, token });
+      expect(spawned).toBe(0);
+      expect(requests).toEqual([
+        { url: '/version.json', token: undefined, body: '' },
+        {
+          url: '/ipc',
+          token,
+          body: JSON.stringify({ op: 'heartbeat', sessionId: '__launcher_probe__' }),
+        },
+      ]);
+    } finally {
+      await closeServer(server);
+    }
+  });
+
   it('spawns the daemon when none is running, then returns a working handle', async () => {
     let started: Awaited<ReturnType<typeof startDaemon>> | undefined;
     const launcher = createLauncher({
@@ -44,6 +113,87 @@ describe('daemon launcher', () => {
       expect(res.status).toBe(200);
     } finally {
       await started?.close();
+    }
+  });
+
+  it('spawns on the configured port when that port refuses connections', async () => {
+    const reservation = await listenServer((_request, response) => response.end());
+    const port = reservation.port;
+    await closeServer(reservation.server);
+    let started: Awaited<ReturnType<typeof startDaemon>> | undefined;
+    let spawnPort: number | undefined;
+    const launcher = createLauncher({
+      home,
+      port,
+      spawnDaemon: async ({ home: daemonHome, port: configuredPort }) => {
+        spawnPort = configuredPort;
+        started = await startDaemon({ home: daemonHome, port: configuredPort });
+      },
+    });
+
+    try {
+      const handle = await launcher.ensureRunning();
+      expect(spawnPort).toBe(port);
+      expect(handle.port).toBe(port);
+    } finally {
+      await started?.close();
+    }
+  });
+
+  it('fails before spawn when the configured port is occupied by a non-Web Picker process', async () => {
+    const { server, port } = await listenServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/plain' });
+      response.end('not web picker');
+    });
+    let spawned = 0;
+
+    try {
+      const launcher = createLauncher({
+        home,
+        port,
+        spawnDaemon: () => { spawned += 1; },
+        readyTimeoutMs: 150,
+        pollIntervalMs: 20,
+      });
+
+      await expect(launcher.ensureRunning()).rejects.toThrow(
+        `Port ${port} is occupied by a non-Web Picker process.`,
+      );
+      expect(spawned).toBe(0);
+    } finally {
+      await closeServer(server);
+    }
+  });
+
+  it.each([
+    ['a mismatched version', '0.0.0', 200],
+    ['rejected authenticated IPC', PACKAGE_VERSION, 401],
+  ])('does not reuse recorded runtime with %s', async (_label, version, ipcStatus) => {
+    const token = 'recorded-secret';
+    const { server, port } = await listenServer((request, response) => {
+      response.writeHead(request.url === '/ipc' ? ipcStatus : 200, {
+        'content-type': 'application/json',
+      });
+      response.end(JSON.stringify(
+        request.url === '/version.json' ? { version } : { error: 'unauthorized' },
+      ));
+    });
+    writeRuntime(resolvePaths({ home, env: {} }), { port, token, pid: process.pid });
+
+    try {
+      const launcher = createLauncher({
+        home,
+        port,
+        spawnDaemon: () => {},
+        readyTimeoutMs: 150,
+        pollIntervalMs: 20,
+      });
+
+      await expect(launcher.ensureRunning()).rejects.toThrow(
+        `Port ${port} is occupied by a non-Web Picker process.`,
+      );
+    } finally {
+      await closeServer(server);
     }
   });
 

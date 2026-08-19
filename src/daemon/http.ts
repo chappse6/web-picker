@@ -22,6 +22,17 @@ export interface ApiResponse {
 
 export type ApiHandler = (req: ApiRequest) => ApiResponse | Promise<ApiResponse>;
 
+/** Safe error that may cross the Node HTTP adapter boundary verbatim. */
+export class HttpInputError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+  ) {
+    super(code);
+    this.name = 'HttpInputError';
+  }
+}
+
 /** Minimal logging port; inject a no-op in tests. */
 export interface Logger {
   info(msg: string, meta?: unknown): void;

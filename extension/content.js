@@ -17,6 +17,7 @@
   const { STYLES, HIGHLIGHT_ID, PANEL_ID, FAB_ID, PICK_ICON } = await import(url('styles.js'));
   const { createPicker } = await import(url('pick.js'));
   const { capturePayload } = await import(url('capture.js'));
+  const { runtimeErrorGuidance } = await import(url('runtime-api.js'));
 
   async function send(type, payload) {
     const response = await chrome.runtime.sendMessage({ type, payload });
@@ -94,11 +95,12 @@
       if (conn) conn.innerHTML = '<span class="wp-dot" style="background:#22c55e"></span>연결됨';
       if (conn) conn.className = 'wp-conn ok';
       if (pending) pending.textContent = String(n);
-    } catch {
+    } catch (error) {
       if (conn) conn.innerHTML = '<span class="wp-dot" style="background:#f04438"></span>데몬 미실행';
       if (conn) conn.className = 'wp-conn err';
       if (pending) pending.textContent = '—';
-      showStateCard('데몬이 실행 중이 아닙니다', '로컬 데몬(127.0.0.1:8787)에 연결할 수 없습니다.', '#f04438');
+      const guidance = runtimeErrorGuidance(error?.code);
+      showStateCard(guidance.title, guidance.note, '#f04438');
     }
   }
 
@@ -191,8 +193,9 @@
         pending = (s.queue || []).filter((r) => r.status === 'pending').length;
       } catch {}
       renderSuccess(res.id, pending);
-    } catch {
-      showStateCard('데몬이 실행 중이 아닙니다', '로컬 데몬(127.0.0.1:8787)에 연결할 수 없습니다.', '#f04438');
+    } catch (error) {
+      const guidance = runtimeErrorGuidance(error?.code);
+      showStateCard(guidance.title, guidance.note, '#f04438');
     }
   }
 
