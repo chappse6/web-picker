@@ -4,11 +4,15 @@
   "description": "localhost element picker that bridges browser element picks to MCP coding agents",
   "license": "MIT",
   "type": "module",
+  "imports": {
+    "#web-picker-capture": "./extension/capture.js"
+  },
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.benchmark.json",
+    "benchmark": "npm run build && node dist/benchmark/run.js",
     "test": "vitest run",
     "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",

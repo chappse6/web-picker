@@ -1,0 +1,296 @@
+{
+  "label": "target-disambiguation benchmark",
+  "fixtureCount": 30,
+  "textOnlyRate": 0,
+  "locatorRate": 1,
+  "confidenceCalibration": {
+    "high": {
+      "total": 20,
+      "successes": 20
+    },
+    "low": {
+      "total": 0,
+      "successes": 0
+    },
+    "medium": {
+      "total": 10,
+      "successes": 10
+    }
+  },
+  "meanPayloadBytes": 1065,
+  "p95PayloadBytes": 1138,
+  "fixtures": [
+    {
+      "id": "aria-only-01",
+      "category": "aria-only",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1134
+    },
+    {
+      "id": "aria-only-02",
+      "category": "aria-only",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1134
+    },
+    {
+      "id": "aria-only-03",
+      "category": "aria-only",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1138
+    },
+    {
+      "id": "aria-only-04",
+      "category": "aria-only",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1158
+    },
+    {
+      "id": "aria-only-05",
+      "category": "aria-only",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1134
+    },
+    {
+      "id": "generated-class-01",
+      "category": "generated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 984
+    },
+    {
+      "id": "generated-class-02",
+      "category": "generated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 989
+    },
+    {
+      "id": "generated-class-03",
+      "category": "generated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 989
+    },
+    {
+      "id": "generated-class-04",
+      "category": "generated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1009
+    },
+    {
+      "id": "generated-class-05",
+      "category": "generated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 984
+    },
+    {
+      "id": "nested-landmark-01",
+      "category": "nested-landmark",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1120
+    },
+    {
+      "id": "nested-landmark-02",
+      "category": "nested-landmark",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1120
+    },
+    {
+      "id": "nested-landmark-03",
+      "category": "nested-landmark",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1120
+    },
+    {
+      "id": "nested-landmark-04",
+      "category": "nested-landmark",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1120
+    },
+    {
+      "id": "nested-landmark-05",
+      "category": "nested-landmark",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "medium",
+      "payloadBytes": 1120
+    },
+    {
+      "id": "repeated-class-01",
+      "category": "repeated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1100
+    },
+    {
+      "id": "repeated-class-02",
+      "category": "repeated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1080
+    },
+    {
+      "id": "repeated-class-03",
+      "category": "repeated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1100
+    },
+    {
+      "id": "repeated-class-04",
+      "category": "repeated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1088
+    },
+    {
+      "id": "repeated-class-05",
+      "category": "repeated-class",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1070
+    },
+    {
+      "id": "repeated-label-01",
+      "category": "repeated-label",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 993
+    },
+    {
+      "id": "repeated-label-02",
+      "category": "repeated-label",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 999
+    },
+    {
+      "id": "repeated-label-03",
+      "category": "repeated-label",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 993
+    },
+    {
+      "id": "repeated-label-04",
+      "category": "repeated-label",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 999
+    },
+    {
+      "id": "repeated-label-05",
+      "category": "repeated-label",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1029
+    },
+    {
+      "id": "safe-test-id-01",
+      "category": "safe-test-id",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1050
+    },
+    {
+      "id": "safe-test-id-02",
+      "category": "safe-test-id",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1050
+    },
+    {
+      "id": "safe-test-id-03",
+      "category": "safe-test-id",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1049
+    },
+    {
+      "id": "safe-test-id-04",
+      "category": "safe-test-id",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1048
+    },
+    {
+      "id": "safe-test-id-05",
+      "category": "safe-test-id",
+      "textOnlySuccess": false,
+      "locatorSuccess": true,
+      "confidence": "high",
+      "payloadBytes": 1049
+    }
+  ],
+  "categories": {
+    "aria-only": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    },
+    "generated-class": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    },
+    "nested-landmark": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    },
+    "repeated-class": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    },
+    "repeated-label": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    },
+    "safe-test-id": {
+      "fixtures": 5,
+      "textOnlySuccesses": 0,
+      "locatorSuccesses": 5
+    }
+  }
+}

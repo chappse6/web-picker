@@ -169,7 +169,13 @@ Google Chrome is required for npm run test:e2e; install Chrome or set PLAYWRIGHT
 npm test          # vitest (unit + jsdom + integration; excludes real Chrome)
 npm run test:e2e  # headed installed-Chrome round trip
 npm run build     # tsc -> dist/
+npm run benchmark # deterministic target-disambiguation benchmark -> artifacts/
 ```
+
+`npm run benchmark` measures target disambiguation on 30 static HTML fixtures.
+It records text-only resolution, Web Picker locator resolution, confidence
+calibration, and serialized capture-payload byte sizes in
+`artifacts/benchmark-results.json` and `artifacts/benchmark-results.md`.
 
 Architecture: pure core (`src/daemon/state.ts`) + application handlers
 (`extension-api`, `ipc-api`, `tools`) + thin adapters (`server.ts`, `shim.ts`,
