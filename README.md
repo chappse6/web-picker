@@ -84,7 +84,7 @@ is needed.
    - Click the **픽** button (bottom-right) → **요소 선택**.
    - Hover the **main area's 저장 button** (inside the profile card) and click it.
    - Type a request, e.g. `이 버튼을 파란색으로`, and click **보내기**.
-   - You should see `전송됨 (id: ...)`.
+   - You should see `요청을 큐에 보냈습니다`.
 
 5. **Pull it from the agent**
    In a Claude Code / Codex session:
@@ -154,7 +154,8 @@ Google Chrome is required for npm run test:e2e; install Chrome or set PLAYWRIGHT
 - Input values and email-, long-digit-, or token-shaped strings are never
   exported. The same filter covers selector, `id`, `class`, `role`,
   `aria-label`, `name`, ancestor summaries, and masked HTML while retaining
-  safe class tokens for target identity. `dataset` sends keys only.
+  safe class tokens for target identity. `dataset` sends only non-sensitive key
+  names after DOM normalization; values never leave the page.
 
 ## MCP tools
 
@@ -177,6 +178,10 @@ npm run build     # tsc -> dist/
 npm run benchmark # deterministic target-disambiguation benchmark -> artifacts/
 npm run sbom      # CycloneDX 1.5 inventory -> artifacts/sbom.cdx.json
 ```
+
+`npm run sbom` rejects Node versions below the documented engine floor, restores
+lockfile-derived integrity/development/optional metadata, validates the final
+CycloneDX JSON, and writes canonical bytes independent of npm's hidden-lock cache.
 
 `npm run benchmark` measures target disambiguation only on 30 static HTML
 fixtures. It includes balanced ambiguous-label and unique-label controls,

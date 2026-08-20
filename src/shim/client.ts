@@ -90,27 +90,30 @@ export function createClient(deps: ClientDeps): WebPickerClient {
     },
     async list() {
       const t = await tx();
-      const r = await t.send('list');
+      const r = await t.send('list', { sessionId: deps.sessionId });
       return r?.requests ?? [];
     },
     async pull() {
       const t = await tx();
-      const r = await t.send('pull');
+      const r = await t.send('pull', { sessionId: deps.sessionId });
       return r?.requests ?? [];
     },
     async watch(timeoutMs) {
       const t = await tx();
-      const r = await t.send('watch', timeoutMs === undefined ? {} : { timeoutMs });
+      const r = await t.send('watch', {
+        sessionId: deps.sessionId,
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+      });
       return r?.requests ?? [];
     },
     async get(id) {
       const t = await tx();
-      const r = await t.send('get', { id });
+      const r = await t.send('get', { sessionId: deps.sessionId, id });
       return r?.request ?? null;
     },
     async resolve(id) {
       const t = await tx();
-      const r = await t.send('resolve', { id });
+      const r = await t.send('resolve', { sessionId: deps.sessionId, id });
       return { ok: Boolean(r?.ok) };
     },
   };

@@ -17,7 +17,7 @@
     "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",
     "test:watch": "vitest",
-    "sbom": "cyclonedx-npm --output-file artifacts/sbom.cdx.json --output-format JSON --spec-version 1.5 --output-reproducible --validate"
+    "sbom": "node scripts/generate-sbom.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

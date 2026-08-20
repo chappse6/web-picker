@@ -77,6 +77,36 @@ describe('shim client — connect / claim', () => {
     expect(result.activeSessionId).toBe('other');
   });
 
+  it('sends its session id with every queue operation', async () => {
+    const { transport, calls } = fakeTransport({
+      list: { ok: true, requests: [] },
+      pull: { ok: true, requests: [] },
+      watch: { ok: true, requests: [] },
+      get: { ok: true, request: null },
+      resolve: { ok: true },
+    });
+    const client = createClient({
+      launcher: fakeLauncher(),
+      createTransport: () => transport,
+      sessionId: 'session-a',
+      label: 'A',
+    });
+
+    await client.list();
+    await client.pull();
+    await client.watch(123);
+    await client.get('r1');
+    await client.resolve('r1');
+
+    expect(calls).toEqual([
+      { op: 'list', args: { sessionId: 'session-a' } },
+      { op: 'pull', args: { sessionId: 'session-a' } },
+      { op: 'watch', args: { sessionId: 'session-a', timeoutMs: 123 } },
+      { op: 'get', args: { sessionId: 'session-a', id: 'r1' } },
+      { op: 'resolve', args: { sessionId: 'session-a', id: 'r1' } },
+    ]);
+  });
+
   it('takeOver transfers occupancy', async () => {
     const { transport, calls } = fakeTransport({
       take_over: { ok: true, activeSessionId: 'a' },
@@ -105,7 +135,7 @@ describe('shim client — connect / claim', () => {
     });
     const requests = await client.watch(1234);
     expect(requests.map((r) => r.id)).toEqual(['r9']);
-    expect(calls.at(-1)).toEqual({ op: 'watch', args: { timeoutMs: 1234 } });
+    expect(calls.at(-1)).toEqual({ op: 'watch', args: { sessionId: 'a', timeoutMs: 1234 } });
   });
 
   it('pull returns requests and resolve forwards the id', async () => {
@@ -123,7 +153,7 @@ describe('shim client — connect / claim', () => {
     expect(requests.map((r) => r.id)).toEqual(['r1', 'r2']);
     const r = await client.resolve('r1');
     expect(r.ok).toBe(true);
-    expect(calls.at(-1)).toEqual({ op: 'resolve', args: { id: 'r1' } });
+    expect(calls.at(-1)).toEqual({ op: 'resolve', args: { sessionId: 'a', id: 'r1' } });
   });
 });
 

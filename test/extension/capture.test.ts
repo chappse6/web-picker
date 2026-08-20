@@ -71,6 +71,30 @@ describe('captureElement — identity preservation', () => {
     expect(JSON.stringify(cap)).not.toContain('42');
   });
 
+  it('drops sensitive dataset key names after DOM camelCase normalization', () => {
+    document.body.innerHTML = `
+      <button
+        data-auth-token="auth-value"
+        data-email="owner@example.com"
+        data-ssn="123-45-6789"
+        data-card="4111111111111111"
+        data-secret="secret-value"
+        data-api-key="api-value"
+        data-analytics-key="safe-value"
+      >저장</button>`;
+
+    const cap = captureElement(document.querySelector('button')!);
+    const serialized = JSON.stringify(cap);
+
+    expect(cap.dataset).toEqual(['analyticsKey']);
+    for (const sensitive of ['authToken', 'email', 'ssn', 'card', 'secret', 'apiKey']) {
+      expect(serialized).not.toContain(sensitive);
+    }
+    for (const value of ['auth-value', 'owner@example.com', '123-45-6789', '4111111111111111', 'secret-value', 'api-value', 'safe-value']) {
+      expect(serialized).not.toContain(value);
+    }
+  });
+
   it('allowlists attributes (id/class/role/aria-label/name)', () => {
     const cap = captureElement(document.getElementById('more')!);
     expect(cap.attributes.class).toBe('card-link');

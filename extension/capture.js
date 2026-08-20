@@ -218,7 +218,7 @@ export function captureElement(el) {
     className: classNameOf(el),
     role: sanitizeAttributeValue('role', el.getAttribute('role')),
     ariaLabel: sanitizeAttributeValue('aria-label', el.getAttribute('aria-label')),
-    dataset: el.dataset ? Object.keys(el.dataset) : [],
+    dataset: el.dataset ? Object.keys(el.dataset).filter((key) => !SENSITIVE_NAME.test(key)) : [],
     attributes: collectAttributes(el),
     ancestors: summarizeAncestors(el),
     rect: rectOf(el),

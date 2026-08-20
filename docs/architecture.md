@@ -32,9 +32,9 @@ The extension and coding agent have different lifetimes. A singleton daemon owns
 
 - Browser activation is limited to `localhost`, `127.0.0.1`, and `*.localhost` pages.
 - The service worker accepts messages only from Chrome-verified allowed tabs. Daemon browser endpoints require the manifest-pinned `chrome-extension://mnglicpibnccgcifnndemfpidkcgboli` origin; the value is public identity, not a secret.
-- The daemon binds only to `127.0.0.1`. MCP-side IPC requires a per-run token stored with mode `0600` and compared in constant time.
+- The daemon binds only to `127.0.0.1`. MCP-side IPC requires a per-run token stored with mode `0600` and compared in constant time. Every queue read or mutation also requires the active session ID; takeover immediately denies the stale owner, including a long-poll response that settles after ownership changes.
 - Request bodies are capped at 64 KiB. Shared Zod schemas cap the user question at 2,000 characters and locator candidates at eight.
-- Input values and email-like, long-digit, or token-shaped strings are excluded before relay. One capture-source filter covers selector construction, top-level `id`/`class`/`role`/`aria-label`, allowlisted attributes, ancestor summaries, and masked HTML; safe class tokens remain available for target identity. Sensitive `name` attributes and non-allowlisted dataset values are excluded, and dataset exports keys only.
+- Input values and email-like, long-digit, or token-shaped strings are excluded before relay. One capture-source filter covers selector construction, top-level `id`/`class`/`role`/`aria-label`, allowlisted attributes, ancestor summaries, and masked HTML; safe class tokens remain available for target identity. Sensitive `name` attributes and dataset key names are excluded after DOM camelCase normalization; dataset values never leave the page.
 - Logs contain request method/path, safe error code, IDs, and statuses; they exclude questions, DOM content, captured HTML, and tokens.
 
 Processes running as the same OS user, compromised Chrome/Node/OS installations, and user-approved harmful source edits are outside this boundary.
@@ -61,7 +61,7 @@ npm run test:e2e
 npm run benchmark
 ```
 
-`npm run sbom` regenerates and validates a reproducible CycloneDX 1.5 inventory. The human table recursively walks nested components and deduplicates all 218 installed components by PURL. No model API key, cloud account, or downloaded Playwright browser is required.
+`npm run sbom` regenerates and validates a reproducible CycloneDX 1.5 inventory. Its wrapper rejects unsupported Node versions, restores integrity/development/optional metadata from `package-lock.json`, and canonicalizes object keys so npm hidden-lock cache age cannot change output bytes. The human table recursively walks nested components and deduplicates all 218 installed components by PURL. No model API key, cloud account, or downloaded Playwright browser is required.
 
 ## Known limitations
 

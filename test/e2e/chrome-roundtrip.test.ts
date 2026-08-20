@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,20 +8,24 @@ import { chromium, type BrowserContext } from 'playwright-core';
 import { startDaemon, type RunningDaemon } from '../../src/daemon/daemon.js';
 import { createClient, createHttpTransport, type WebPickerClient } from '../../src/shim/client.js';
 import { createLauncher } from '../../src/shim/spawn.js';
-import { composeChromeExtensionArguments } from './chrome-launch.js';
+import {
+  CHROME_REQUIRED,
+  composeChromeExtensionArguments,
+  configuredChromeExecutable,
+  isExecutableFile,
+  normalizeChromeLaunchError,
+} from './chrome-launch.js';
 import { startTestPageServer, type RunningTestPageServer } from './server.js';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const DAEMON_PORT = 8787;
-const CHROME_REQUIRED = 'Google Chrome is required for npm run test:e2e; install Chrome or set PLAYWRIGHT_CHROME_EXECUTABLE';
 const SENSITIVE_EMAIL = 'judge-sensitive@example.com';
 const SENSITIVE_TOKEN = 'judge_sensitive_token_1234567890';
 
 function requireChrome(): string | undefined {
   const configured = process.env.PLAYWRIGHT_CHROME_EXECUTABLE?.trim();
   if (configured) {
-    if (!existsSync(configured)) throw new Error(CHROME_REQUIRED);
-    return configured;
+    return configuredChromeExecutable(configured);
   }
 
   const candidates = process.platform === 'darwin'
@@ -34,7 +38,7 @@ function requireChrome(): string | undefined {
         ]
       : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'];
 
-  if (!candidates.some((candidate) => candidate && existsSync(candidate))) {
+  if (!candidates.some((candidate) => candidate && isExecutableFile(candidate))) {
     throw new Error(CHROME_REQUIRED);
   }
   return undefined;
@@ -52,10 +56,8 @@ async function launchChrome(profileDir: string): Promise<BrowserContext> {
       ...(executablePath ? { executablePath } : {}),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (/executable.*(?:doesn.t exist|not found)|distribution.*chrome.*not found/i.test(message)) {
-      throw new Error(CHROME_REQUIRED);
-    }
+    const normalized = normalizeChromeLaunchError(error);
+    if (normalized) throw normalized;
     throw error;
   }
 }

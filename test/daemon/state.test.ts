@@ -92,6 +92,18 @@ describe('session occupancy', () => {
     expect(s.activeSessionId).toBe('a');
   });
 
+  it('claim is idempotent for the active session and refreshes its heartbeat', () => {
+    let now = 1_000;
+    const s = createState({ now: () => now });
+    s.register('a', 'A');
+    expect(s.claim('a')).toBe(true);
+
+    now = 5_000;
+    expect(s.claim('a')).toBe(true);
+    expect(s.activeSessionId).toBe('a');
+    expect(s.sessionRegistry.get('a')?.lastHeartbeat).toBe(5_000);
+  });
+
   it('claim fails when already occupied', () => {
     const s = createState();
     s.register('a', 'A');

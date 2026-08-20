@@ -72,14 +72,11 @@ export interface WebPickerTools {
 }
 
 export function createTools(client: WebPickerClient): WebPickerTools {
-  let claimed = false;
-
-  // Ensure we hold the session; auto-claims on first use (list/watch).
+  // Revalidate ownership before every queue operation. A different adapter may
+  // have taken over since this short-lived MCP process last touched the daemon.
   async function ensureClaimed(): Promise<boolean> {
-    if (claimed) return true;
     const r = await client.connect();
-    claimed = r.claimed;
-    return claimed;
+    return r.claimed;
   }
 
   function listText(rows: WebRequest[], header: string): McpResult {
@@ -90,7 +87,6 @@ export function createTools(client: WebPickerClient): WebPickerTools {
   return {
     async connect_web_picker() {
       const r = await client.connect();
-      claimed = r.claimed;
       if (!r.claimed) {
         return text(`Could not claim the picker (held by session ${r.activeSessionId}). ${OCCUPIED_HINT}`);
       }
@@ -110,26 +106,27 @@ export function createTools(client: WebPickerClient): WebPickerTools {
     },
 
     async get_web_request(args) {
+      if (!(await ensureClaimed())) return text(OCCUPIED_HINT, true);
       const r = await client.get(args.id);
       if (!r) return text(`No request found with id ${args.id}`, true);
       return text(detail(r));
     },
 
     async resolve_web_request(args) {
+      if (!(await ensureClaimed())) return text(OCCUPIED_HINT, true);
       const r = await client.resolve(args.id);
       if (!r.ok) return text(`Could not resolve ${args.id} (already resolved or unknown).`, true);
       return text(`Resolved ${args.id}.`);
     },
 
     async release_web_picker() {
-      await client.release();
-      claimed = false;
+      const r = await client.release();
+      if (!r.ok) return text('Could not release the web picker session because this client no longer owns it.', true);
       return text('Released the web picker session.');
     },
 
     async take_over_web_picker() {
       const r = await client.takeOver();
-      claimed = r.ok;
       return r.ok ? text('Took over the web picker session.') : text('Take over failed.', true);
     },
   };

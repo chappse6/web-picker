@@ -100,7 +100,10 @@ describe('MCP stdio server', () => {
 
       expect((await client.callTool({ name: 'connect_web_picker', arguments: {} })).content[0]).toMatchObject({ type: 'text' });
       expect((await client.callTool({ name: 'list_web_requests', arguments: {} })).content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('req_stdio') });
-      expect((await client.callTool({ name: 'get_web_request', arguments: { id: 'req_stdio' } })).content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('#profile-save') });
+      const detail = (await client.callTool({ name: 'get_web_request', arguments: { id: 'req_stdio' } })).content[0];
+      expect(detail).toMatchObject({ type: 'text', text: expect.stringContaining('locator confidence: high') });
+      expect(detail).toMatchObject({ type: 'text', text: expect.stringContaining('reason codes: unique-candidate') });
+      expect(detail).toMatchObject({ type: 'text', text: expect.stringContaining('1. id #profile-save — 1 match — stability 100') });
       expect((await client.callTool({ name: 'resolve_web_request', arguments: { id: 'req_stdio' } })).content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('Resolved req_stdio') });
     } finally {
       await transport.close();

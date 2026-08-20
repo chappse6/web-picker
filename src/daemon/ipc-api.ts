@@ -37,6 +37,14 @@ function pendingRequests(state: State): WebRequest[] {
   return state.list().filter((r) => r.status === 'pending');
 }
 
+function ownerConflict(state: State, sessionId: unknown): ApiResponse | null {
+  state.sweep();
+  if (typeof sessionId === 'string' && sessionId.length > 0 && state.activeSessionId === sessionId) {
+    return null;
+  }
+  return json(409, { ok: false, activeSessionId: state.activeSessionId });
+}
+
 export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
   const watchTimeoutMs = config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS;
 
@@ -71,16 +79,24 @@ export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
         return json(200, { ok, activeSessionId: state.activeSessionId });
       }
       case 'list': {
+        const conflict = ownerConflict(state, body.sessionId);
+        if (conflict) return conflict;
         return json(200, { ok: true, requests: state.list() });
       }
       case 'get': {
+        const conflict = ownerConflict(state, body.sessionId);
+        if (conflict) return conflict;
         return json(200, { ok: true, request: state.get(String(body.id)) ?? null });
       }
       case 'pull': {
+        const conflict = ownerConflict(state, body.sessionId);
+        if (conflict) return conflict;
         const requests = state.pull();
         return json(200, { ok: true, requests });
       }
       case 'watch': {
+        const conflict = ownerConflict(state, body.sessionId);
+        if (conflict) return conflict;
         const now = pendingRequests(state);
         if (now.length > 0) return json(200, { ok: true, requests: now });
         const timeout = typeof body.timeoutMs === 'number' ? body.timeoutMs : watchTimeoutMs;
@@ -91,6 +107,11 @@ export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
             settled = true;
             clearTimeout(timer);
             unsub();
+            const conflict = ownerConflict(state, body.sessionId);
+            if (conflict) {
+              resolve(conflict);
+              return;
+            }
             resolve(json(200, { ok: true, requests }));
           };
           const unsub = state.subscribe(() => finish(pendingRequests(state)));
@@ -102,6 +123,8 @@ export function createIpcApi(state: State, config: IpcApiConfig): ApiHandler {
         });
       }
       case 'resolve': {
+        const conflict = ownerConflict(state, body.sessionId);
+        if (conflict) return conflict;
         const ok = state.resolve(String(body.id));
         return json(200, { ok });
       }

@@ -254,14 +254,66 @@ describe('IPC api — token guard', () => {
     expect(state.activeSessionId).toBe('b');
   });
 
+  it.each([
+    ['list', {}],
+    ['pull', {}],
+    ['watch', { timeoutMs: 1 }],
+    ['get', { id: 'request-id' }],
+    ['resolve', { id: 'request-id' }],
+  ])('denies missing and non-owner session ids for %s', async (op, args) => {
+    for (const sessionId of [undefined, 'other']) {
+      const state = createState();
+      state.register('owner', 'Owner');
+      state.claim('owner');
+      const api = createIpcApi(state, { token: TOKEN });
+      const body = { op, ...args, ...(sessionId ? { sessionId } : {}) };
+
+      const res = await api(req({
+        method: 'POST',
+        path: '/ipc',
+        headers: { 'x-web-picker-token': TOKEN },
+        body,
+      }));
+
+      expect(res).toEqual({
+        status: 409,
+        body: { ok: false, activeSessionId: 'owner' },
+      });
+    }
+  });
+
+  it('re-checks watch ownership before returning after a takeover', async () => {
+    const state = createState();
+    state.register('owner', 'Owner');
+    state.claim('owner');
+    const api = createIpcApi(state, { token: TOKEN });
+    const h = { 'x-web-picker-token': TOKEN };
+    const pending = api(req({
+      method: 'POST',
+      path: '/ipc',
+      headers: h,
+      body: { op: 'watch', sessionId: 'owner', timeoutMs: 1_000 },
+    }));
+
+    state.takeOver('new-owner');
+    state.enqueue(payload());
+
+    await expect(pending).resolves.toEqual({
+      status: 409,
+      body: { ok: false, activeSessionId: 'new-owner' },
+    });
+  });
+
   it('pull returns pending requests and marks them claimed; resolve resolves', async () => {
     const { state, api } = ipc();
     const h = { 'x-web-picker-token': TOKEN };
+    state.register('owner', 'Owner');
+    state.claim('owner');
     const reqRow = state.enqueue(payload());
-    const pulled = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'pull' } }));
+    const pulled = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'pull', sessionId: 'owner' } }));
     expect((pulled.body as { requests: Array<{ id: string }> }).requests[0].id).toBe(reqRow.id);
     expect(state.get(reqRow.id)?.status).toBe('claimed');
-    const resolved = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'resolve', id: reqRow.id } }));
+    const resolved = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'resolve', sessionId: 'owner', id: reqRow.id } }));
     expect((resolved.body as { ok: boolean }).ok).toBe(true);
     expect(state.get(reqRow.id)?.status).toBe('resolved');
   });
@@ -274,36 +326,44 @@ describe('IPC api — token guard', () => {
 
   it('list returns the whole queue; get returns one by id', async () => {
     const state = createState();
+    state.register('owner', 'Owner');
+    state.claim('owner');
     const row = state.enqueue(payload());
     const api = createIpcApi(state, { token: TOKEN });
     const h = { 'x-web-picker-token': TOKEN };
-    const list = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'list' } }));
+    const list = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'list', sessionId: 'owner' } }));
     expect((list.body as { requests: unknown[] }).requests).toHaveLength(1);
-    const got = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', id: row.id } }));
+    const got = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', sessionId: 'owner', id: row.id } }));
     expect((got.body as { request: { id: string } }).request.id).toBe(row.id);
-    const missing = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', id: 'nope' } }));
+    const missing = await api(req({ method: 'POST', path: '/ipc', headers: h, body: { op: 'get', sessionId: 'owner', id: 'nope' } }));
     expect((missing.body as { request: unknown }).request).toBe(null);
   });
 
   it('watch returns immediately when a pending request already exists', async () => {
     const state = createState();
+    state.register('owner', 'Owner');
+    state.claim('owner');
     state.enqueue(payload());
     const api = createIpcApi(state, { token: TOKEN });
-    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 50 } }));
+    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', sessionId: 'owner', timeoutMs: 50 } }));
     expect((res.body as { requests: unknown[] }).requests).toHaveLength(1);
   });
 
   it('watch times out to an empty list when nothing arrives', async () => {
     const state = createState();
+    state.register('owner', 'Owner');
+    state.claim('owner');
     const api = createIpcApi(state, { token: TOKEN });
-    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 20 } }));
+    const res = await api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', sessionId: 'owner', timeoutMs: 20 } }));
     expect((res.body as { requests: unknown[] }).requests).toHaveLength(0);
   });
 
   it('watch resolves when a request is enqueued during the wait', async () => {
     const state = createState();
+    state.register('owner', 'Owner');
+    state.claim('owner');
     const api = createIpcApi(state, { token: TOKEN });
-    const pending = api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', timeoutMs: 1000 } }));
+    const pending = api(req({ method: 'POST', path: '/ipc', headers: { 'x-web-picker-token': TOKEN }, body: { op: 'watch', sessionId: 'owner', timeoutMs: 1000 } }));
     setTimeout(() => state.enqueue(payload()), 10);
     const res = await pending;
     expect((res.body as { requests: unknown[] }).requests).toHaveLength(1);

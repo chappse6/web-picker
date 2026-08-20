@@ -142,6 +142,10 @@ export function createState(options: StateOptions = {}): State {
 
     claim(sessionId) {
       state.sweep();
+      if (activeSessionId === sessionId) {
+        state.heartbeat(sessionId);
+        return true;
+      }
       if (activeSessionId !== null) return false;
       if (!sessions.has(sessionId)) this.register(sessionId, sessionId);
       state.heartbeat(sessionId);

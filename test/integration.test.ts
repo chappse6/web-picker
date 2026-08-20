@@ -118,6 +118,38 @@ describe('integration: pick -> queue -> MCP list/get -> resolve (in-process)', (
     expect(resolved.content[0].text).toMatch(/Resolved/);
     expect((await client.get(mainRow!.id))?.status).toBe('resolved');
   });
+
+  it('keeps repeated same-session connects usable and rejects a client after takeover', async () => {
+    const response = await postCapture(
+      daemon.port,
+      capture('#owned', 'main', 'Owned', 'owned request'),
+    );
+    const requestId = String((await responseBody(response)).id);
+    const launcher = createLauncher({ home, port: 0 });
+    const owner = createClient({
+      launcher,
+      createTransport: createHttpTransport,
+      sessionId: 'owner',
+      label: 'Owner',
+    });
+    const other = createClient({
+      launcher,
+      createTransport: createHttpTransport,
+      sessionId: 'other',
+      label: 'Other',
+    });
+
+    await expect(owner.connect()).resolves.toMatchObject({ claimed: true });
+    await expect(owner.connect()).resolves.toMatchObject({ claimed: true });
+    await expect(owner.get(requestId)).resolves.toMatchObject({ id: requestId });
+    await expect(other.connect()).resolves.toMatchObject({ claimed: false, activeSessionId: 'owner' });
+
+    await expect(other.takeOver()).resolves.toEqual({ ok: true, activeSessionId: 'other' });
+    await expect(owner.list()).rejects.toThrow('ipc list failed: 409');
+    await expect(owner.get(requestId)).rejects.toThrow('ipc get failed: 409');
+    await expect(owner.resolve(requestId)).rejects.toThrow('ipc resolve failed: 409');
+    await expect(other.list()).resolves.toHaveLength(1);
+  });
 });
 
 describe('integration: cold spawn from built dist', () => {
@@ -177,7 +209,7 @@ describe('integration: durable queue recovery', () => {
     const transport = createHttpTransport(daemon);
     await transport.send('register', { sessionId: 'session-secret', label: 'Agent' });
     await transport.send('claim', { sessionId: 'session-secret' });
-    expect((await transport.send('pull')).requests).toHaveLength(1);
+    expect((await transport.send('pull', { sessionId: 'session-secret' })).requests).toHaveLength(1);
 
     const secondResponse = await postCapture(
       daemon.port,
@@ -192,17 +224,23 @@ describe('integration: durable queue recovery', () => {
 
     daemon = await startDaemon({ home, port: 0 });
     daemonRunning = true;
-    const recovered = await createHttpTransport(daemon).send('list');
+    const recoveredTransport = createHttpTransport(daemon);
+    await recoveredTransport.send('register', { sessionId: 'recovery-a', label: 'Recovery A' });
+    await recoveredTransport.send('claim', { sessionId: 'recovery-a' });
+    const recovered = await recoveredTransport.send('list', { sessionId: 'recovery-a' });
     expect(recovered.requests.map((row: { id: string }) => row.id)).toEqual([firstId, secondId]);
     expect(recovered.requests.map((row: { status: string }) => row.status)).toEqual(['pending', 'pending']);
 
-    await createHttpTransport(daemon).send('resolve', { id: firstId });
+    await recoveredTransport.send('resolve', { sessionId: 'recovery-a', id: firstId });
     await daemon.close();
     daemonRunning = false;
 
     daemon = await startDaemon({ home, port: 0 });
     daemonRunning = true;
-    const afterResolve = await createHttpTransport(daemon).send('list');
+    const finalTransport = createHttpTransport(daemon);
+    await finalTransport.send('register', { sessionId: 'recovery-b', label: 'Recovery B' });
+    await finalTransport.send('claim', { sessionId: 'recovery-b' });
+    const afterResolve = await finalTransport.send('list', { sessionId: 'recovery-b' });
     expect(afterResolve.requests.map((row: { id: string; status: string }) => [row.id, row.status]))
       .toEqual([[firstId, 'resolved'], [secondId, 'pending']]);
     expect(readFileSync(paths.queueFile, 'utf8')).not.toContain('session-secret');

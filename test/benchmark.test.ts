@@ -97,9 +97,16 @@ describe('target-disambiguation benchmark', () => {
     const outputDirectory = mkdtempSync(join(tmpdir(), 'web-picker-benchmark-'));
     try {
       writeBenchmarkArtifacts(outputDirectory);
-      const json = readFileSync(join(outputDirectory, 'benchmark-results.json'), 'utf8');
-      const markdown = readFileSync(join(outputDirectory, 'benchmark-results.md'), 'utf8');
+      const firstJson = readFileSync(join(outputDirectory, 'benchmark-results.json'));
+      const firstMarkdown = readFileSync(join(outputDirectory, 'benchmark-results.md'));
+      writeBenchmarkArtifacts(outputDirectory);
+      const secondJson = readFileSync(join(outputDirectory, 'benchmark-results.json'));
+      const secondMarkdown = readFileSync(join(outputDirectory, 'benchmark-results.md'));
+      const json = secondJson.toString('utf8');
+      const markdown = secondMarkdown.toString('utf8');
 
+      expect(secondJson.equals(firstJson)).toBe(true);
+      expect(secondMarkdown.equals(firstMarkdown)).toBe(true);
       expect(JSON.parse(json)).toMatchObject({
         label: 'target-disambiguation benchmark',
         fixtureCount: 30,

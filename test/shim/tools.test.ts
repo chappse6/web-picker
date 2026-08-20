@@ -112,12 +112,12 @@ describe('MCP tools', () => {
     expect(r.content[0].text).toContain('저장');
   });
 
-  it('list_web_requests does not re-connect once claimed', async () => {
+  it('list_web_requests revalidates ownership before every operation', async () => {
     const { client, calls } = fakeClient();
     const tools = createTools(client);
     await tools.list_web_requests();
     await tools.list_web_requests();
-    expect(calls).toEqual(['connect', 'list', 'list']);
+    expect(calls).toEqual(['connect', 'list', 'connect', 'list']);
   });
 
   it('list_web_requests returns an error result when occupied', async () => {
@@ -139,9 +139,10 @@ describe('MCP tools', () => {
   });
 
   it('get_web_request returns element detail with identifying clues', async () => {
-    const { client } = fakeClient();
+    const { client, calls } = fakeClient();
     const r = await createTools(client).get_web_request({ id: 'r1' });
     const t = r.content[0].text;
+    expect(calls).toEqual(['connect', 'get:r1']);
     expect(t).toContain('selector: #save-btn');
     expect(t).toContain('landmark: footer');
     expect(t).toContain('visibleLabel: 저장');
@@ -181,9 +182,40 @@ describe('MCP tools', () => {
   });
 
   it('resolve_web_request confirms resolution', async () => {
-    const { client } = fakeClient();
+    const { client, calls } = fakeClient();
     const r = await createTools(client).resolve_web_request({ id: 'r1' });
+    expect(calls).toEqual(['connect', 'resolve:r1']);
     expect(r.content[0].text).toMatch(/Resolved r1/);
+  });
+
+  it.each(['get', 'resolve'])('%s_web_request refuses to operate after ownership is lost', async (op) => {
+    const { client, calls } = fakeClient({
+      async connect() {
+        calls.push('connect');
+        return { claimed: false, activeSessionId: 'other', pending: 0 };
+      },
+    });
+    const tools = createTools(client);
+
+    const result = op === 'get'
+      ? await tools.get_web_request({ id: 'r1' })
+      : await tools.resolve_web_request({ id: 'r1' });
+
+    expect(result.isError).toBe(true);
+    expect(calls).toEqual(['connect']);
+  });
+
+  it('release_web_picker reports a server-side ownership failure', async () => {
+    const { client } = fakeClient({
+      async release() {
+        return { ok: false };
+      },
+    });
+
+    const result = await createTools(client).release_web_picker();
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/could not release/i);
   });
 
   it('release_web_picker releases and forces re-claim on next list', async () => {
@@ -200,6 +232,6 @@ describe('MCP tools', () => {
     const tools = createTools(client);
     await tools.take_over_web_picker();
     await tools.list_web_requests();
-    expect(calls).toEqual(['takeOver', 'list']);
+    expect(calls).toEqual(['takeOver', 'connect', 'list']);
   });
 });

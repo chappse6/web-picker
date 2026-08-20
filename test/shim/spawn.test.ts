@@ -123,7 +123,7 @@ describe('daemon launcher', () => {
   it.each([
     ['uses WEB_PICKER_PORT=0 for an ephemeral daemon', '0', undefined, 0],
     ['falls back to the default port for an invalid WEB_PICKER_PORT', 'invalid', undefined, DEFAULT_PORT],
-    ['prefers an explicit port over WEB_PICKER_PORT', '0', 0, 0],
+    ['prefers an explicit port over WEB_PICKER_PORT', '45123', 0, 0],
   ])('%s', async (_label, envPort, explicitPort, expectedPort) => {
     process.env.WEB_PICKER_PORT = envPort;
     let started: Awaited<ReturnType<typeof startDaemon>> | undefined;
