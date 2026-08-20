@@ -12,19 +12,19 @@ never leaking sensitive values.
 ## How it works
 
 ```
- Browser (localhost page)          Local machine                 Coding agent
- ┌─────────────────────┐     ┌───────────────────────┐     ┌──────────────────┐
- │ Chrome extension    │     │ Daemon (127.0.0.1)     │     │ MCP shim         │
- │  pick element ──────┼──►  │  POST /requests        │     │  connect / list  │
- │  mask + capture     │HTTP │  queue (pending)       │◄────┤  pull / resolve  │
- │  send fix request   │     │  IPC /ipc (token)      │ IPC │  (7 MCP tools)   │
- └─────────────────────┘     └───────────────────────┘     └──────────────────┘
+ Browser (localhost page)            Local machine                Coding agent
+ ┌────────────────────────┐     ┌───────────────────────┐     ┌──────────────────┐
+ │ content script         │     │ Daemon (127.0.0.1)    │     │ MCP adapter      │
+ │  pick + mask + rank    │     │  durable queue        │     │  connect / list  │
+ │          │ runtime msg │     │  extension HTTP       │     │  pull / resolve  │
+ │ service worker ────────┼HTTP►│  token IPC /ipc      │◄────┤  (7 MCP tools)   │
+ └────────────────────────┘     └───────────────────────┘ IPC └──────────────────┘
 ```
 
 - **Daemon** binds `127.0.0.1` only. The extension worker accepts messages only
   from Chrome-verified localhost tabs, and daemon extension endpoints accept only
   the pinned `chrome-extension://mnglicpibnccgcifnndemfpidkcgboli` **Origin**.
-  The shim's IPC is guarded by a per-run **token**.
+  The MCP adapter's IPC is guarded by a per-run **token**.
 - **Agent-neutral**: the daemon never knows whether the agent is Claude Code or
   Codex. Only the register step differs.
 - **Masking preserves identity**: input values, emails, tokens are never exported;
@@ -33,7 +33,7 @@ never leaking sensitive values.
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 20.18.0 (tested with 20.20.2)
 - Google Chrome (MV3, load unpacked)
 - A coding agent that speaks MCP (Claude Code or Codex)
 
@@ -58,9 +58,12 @@ Then:
    ```
    Both point the agent at `scripts/run.cjs`, which lazily starts the daemon.
 
-## Judge reproduction guide (no keys, no accounts)
+## Five-minute judge path (no keys, no accounts)
 
-The whole round trip is reproducible from the demo page alone.
+The whole round trip is reproducible from the demo page alone. Automated
+verification normally finishes inside five minutes on a machine with installed
+Chrome and a graphical desktop; no model API key or Playwright browser download
+is needed.
 
 1. **Setup**
    ```bash
@@ -170,6 +173,7 @@ npm test          # vitest (unit + jsdom + integration; excludes real Chrome)
 npm run test:e2e  # headed installed-Chrome round trip
 npm run build     # tsc -> dist/
 npm run benchmark # deterministic target-disambiguation benchmark -> artifacts/
+npm run sbom      # CycloneDX 1.5 inventory -> artifacts/sbom.cdx.json
 ```
 
 `npm run benchmark` measures target disambiguation only on 30 static HTML
@@ -181,11 +185,18 @@ confidence calibration, label strata, and serialized capture-payload byte sizes 
 `artifacts/benchmark-results.json` and `artifacts/benchmark-results.md`.
 
 Architecture: pure core (`src/daemon/state.ts`) + application handlers
-(`extension-api`, `ipc-api`, `tools`) + thin adapters (`server.ts`, `shim.ts`,
-`spawn.ts`). Ports are injected, so everything unit-tests without sockets. See
-`docs/specs/web-picker-mvp-design.md`.
+(`extension-api`, `ipc-api`, `tools`) + thin adapters (`server.ts`, MCP adapter
+source under `src/shim/`, `spawn.ts`). Ports are injected, so everything unit-tests
+without sockets. See [`docs/architecture.md`](docs/architecture.md).
+
+Submission evidence: [`docs/dependencies.md`](docs/dependencies.md),
+[`docs/video-script.md`](docs/video-script.md), and
+[`docs/submission-checklist.md`](docs/submission-checklist.md). Public repository
+and YouTube URLs remain explicit checklist blockers until the owner publishes and
+verifies them.
 
 ## License
 
-[MIT](./LICENSE). All dependencies are permissive (MIT / Apache-2.0 / BSD / ISC);
-no GPL-family dependencies.
+[MIT](./LICENSE). Locked dependency licenses are recorded from installed package
+metadata in [`docs/dependencies.md`](docs/dependencies.md). No GPL-family runtime
+dependency is present.

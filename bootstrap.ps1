@@ -5,7 +5,13 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  Write-Error "Node.js >= 18 is required."
+  Write-Error "Node.js >= 20.18.0 is required."
+  exit 1
+}
+
+node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a>20||(a===20&&b>=18)?0:1)'
+if ($LASTEXITCODE -ne 0) {
+  Write-Error "Node.js >= 20.18.0 is required; found $(node --version)."
   exit 1
 }
 
