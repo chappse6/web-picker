@@ -151,8 +151,10 @@ Google Chrome is required for npm run test:e2e; install Chrome or set PLAYWRIGHT
   extension HTTP endpoints require the exact pinned extension **Origin**. IPC
   requires a **token** (compared in constant time), stored `0600` in
   `~/.web-picker/token`.
-- Input values, emails, tokens, and sensitive `name` attributes are never
-  exported. `dataset` sends keys only.
+- Input values and email-, long-digit-, or token-shaped strings are never
+  exported. The same filter covers selector, `id`, `class`, `role`,
+  `aria-label`, `name`, ancestor summaries, and masked HTML while retaining
+  safe class tokens for target identity. `dataset` sends keys only.
 
 ## MCP tools
 

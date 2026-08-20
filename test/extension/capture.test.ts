@@ -115,6 +115,63 @@ describe('captureElement — sensitive value protection', () => {
     const cap = captureElement(document.getElementById('email')!);
     expect(cap.visibleLabel).toBe(null);
   });
+
+  it('removes a token-shaped id from every exported field while retaining safe class identity', () => {
+    const secretId = 'token_abcdefghijklmnopqrstuvwxyz';
+    document.body.innerHTML = `<main><button id="${secretId}" class="btn primary">저장</button></main>`;
+
+    const cap = captureElement(document.querySelector('button')!);
+    const json = JSON.stringify(cap);
+
+    expect(json).not.toContain(secretId);
+    expect(cap.id).toBe(null);
+    expect(cap.attributes).not.toHaveProperty('id');
+    expect(cap.selector).toContain('button.btn.primary');
+    expect(cap.locatorEvidence.candidates.some((candidate) => candidate.matchCount === 1)).toBe(true);
+  });
+
+  it('removes card-shaped class tokens from the target and its ancestor while retaining safe classes', () => {
+    const targetSecret = 'card-4111-1111-1111-1111';
+    const ancestorSecret = 'account-5555-5555-5555-4444';
+    document.body.innerHTML = `
+      <section class="profile ${ancestorSecret}">
+        <button class="btn ${targetSecret}">저장</button>
+      </section>`;
+
+    const cap = captureElement(document.querySelector('button')!);
+    const json = JSON.stringify(cap);
+
+    expect(json).not.toContain(targetSecret);
+    expect(json).not.toContain(ancestorSecret);
+    expect(cap.className).toBe('btn');
+    expect(cap.attributes.class).toBe('btn');
+    expect(cap.ancestors[0]?.className).toBe('profile');
+  });
+
+  it('removes an email aria-label from top-level fields, attributes, labels, and masked HTML', () => {
+    const email = 'owner@example.com';
+    document.body.innerHTML = `<button class="contact" role="button" aria-label="${email}">연락</button>`;
+
+    const cap = captureElement(document.querySelector('button')!);
+
+    expect(JSON.stringify(cap)).not.toContain(email);
+    expect(cap.ariaLabel).toBe(null);
+    expect(cap.attributes).not.toHaveProperty('aria-label');
+    expect(cap.visibleLabel).toBe('연락');
+  });
+
+  it('removes other token-shaped allowlisted attribute values without dropping safe attributes', () => {
+    const secretRole = 'auth_token_abcdefghijklmnopqrstuvwxyz';
+    document.body.innerHTML = `<button id="safe-button" class="action" role="${secretRole}">저장</button>`;
+
+    const cap = captureElement(document.querySelector('button')!);
+
+    expect(JSON.stringify(cap)).not.toContain(secretRole);
+    expect(cap.role).toBe(null);
+    expect(cap.attributes).not.toHaveProperty('role');
+    expect(cap.id).toBe('safe-button');
+    expect(cap.className).toBe('action');
+  });
 });
 
 describe('decoy disambiguation (the moat)', () => {

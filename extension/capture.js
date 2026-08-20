@@ -39,6 +39,18 @@ function looksSensitive(text) {
   return VALUE_LIKE.some((re) => re.test(text));
 }
 
+function sanitizeAttributeValue(name, value) {
+  const collapsed = collapse(value || '');
+  if (!collapsed) return null;
+  if (name === 'class') {
+    const safeTokens = collapsed.split(' ').filter((token) => !looksSensitive(token));
+    return safeTokens.join(' ') || null;
+  }
+  if (looksSensitive(collapsed)) return null;
+  if (name === 'name' && SENSITIVE_NAME.test(collapsed)) return null;
+  return collapsed;
+}
+
 /** Mask text to its length/word shape: chars → •, spaces kept. */
 export function maskShape(text) {
   const s = collapse(text);
@@ -51,8 +63,7 @@ export function maskShape(text) {
 function classNameOf(el) {
   // SVG elements expose className as SVGAnimatedString
   const raw = typeof el.className === 'string' ? el.className : el.getAttribute('class') || '';
-  const c = collapse(raw);
-  return c || null;
+  return sanitizeAttributeValue('class', raw);
 }
 
 function cssEscape(s) {
@@ -61,17 +72,20 @@ function cssEscape(s) {
 }
 
 export function buildSelector(el) {
-  if (el.id) return `#${cssEscape(el.id)}`;
+  const elementId = sanitizeAttributeValue('id', el.getAttribute('id'));
+  if (elementId) return `#${cssEscape(elementId)}`;
   const parts = [];
   let node = el;
   while (node && node.nodeType === 1 && parts.length < MAX_ANCESTORS) {
-    if (node.id) {
-      parts.unshift(`#${cssEscape(node.id)}`);
+    const id = sanitizeAttributeValue('id', node.getAttribute('id'));
+    if (id) {
+      parts.unshift(`#${cssEscape(id)}`);
       break;
     }
     let part = node.tagName.toLowerCase();
-    if (node.classList && node.classList.length) {
-      part += '.' + Array.from(node.classList).slice(0, 2).map(cssEscape).join('.');
+    const className = classNameOf(node);
+    if (className) {
+      part += '.' + className.split(' ').slice(0, 2).map(cssEscape).join('.');
     } else {
       const parent = node.parentElement;
       if (parent) {
@@ -89,8 +103,8 @@ export function collectAttributes(el) {
   const out = {};
   for (const name of ATTR_ALLOWLIST) {
     if (!el.hasAttribute(name)) continue;
-    if (name === 'name' && SENSITIVE_NAME.test(el.getAttribute('name') || '')) continue;
-    out[name === 'class' ? 'class' : name] = el.getAttribute(name);
+    const value = sanitizeAttributeValue(name, el.getAttribute(name));
+    if (value) out[name] = value;
   }
   return out;
 }
@@ -101,9 +115,9 @@ export function summarizeAncestors(el) {
   while (node && node.nodeType === 1 && node.tagName !== 'HTML' && out.length < MAX_ANCESTORS) {
     out.push({
       tagName: node.tagName.toLowerCase(),
-      id: node.id || null,
+      id: sanitizeAttributeValue('id', node.getAttribute('id')),
       className: classNameOf(node),
-      role: node.getAttribute('role'),
+      role: sanitizeAttributeValue('role', node.getAttribute('role')),
     });
     if (node.tagName === 'BODY') break;
     node = node.parentElement;
@@ -139,16 +153,17 @@ export function generateLocatorEvidence(el) {
   const root = el.ownerDocument;
   const candidates = [];
 
-  if (el.id && !looksSensitive(el.id)) {
-    addCandidate(candidates, root, 'id', `#${cssEscape(el.id)}`, 100);
+  const id = sanitizeAttributeValue('id', el.getAttribute('id'));
+  if (id) {
+    addCandidate(candidates, root, 'id', `#${cssEscape(id)}`, 100);
   }
   for (const name of SAFE_TEST_ATTRS) {
-    const value = collapse(el.getAttribute(name) || '');
+    const value = sanitizeAttributeValue(name, el.getAttribute(name));
     if (value) addCandidate(candidates, root, 'test-id', `[${name}="${cssEscape(value)}"]`, 95);
   }
-  const role = collapse(el.getAttribute('role') || '');
-  const aria = collapse(el.getAttribute('aria-label') || '');
-  if (role && aria && !looksSensitive(aria)) {
+  const role = sanitizeAttributeValue('role', el.getAttribute('role'));
+  const aria = sanitizeAttributeValue('aria-label', el.getAttribute('aria-label'));
+  if (role && aria) {
     addCandidate(candidates, root, 'aria', `[role="${cssEscape(role)}"][aria-label="${cssEscape(aria)}"]`, 85);
   }
   const landmark = findLandmark(el);
@@ -169,10 +184,10 @@ function deriveVisibleLabel(el, rawText) {
   const tag = el.tagName.toLowerCase();
   if (FORM_CONTROLS.has(tag)) {
     // never use value/placeholder; prefer aria-label, then a non-sensitive name
-    const aria = collapse(el.getAttribute('aria-label') || '');
-    if (aria && !looksSensitive(aria)) return aria.slice(0, MAX_LABEL);
-    const name = el.getAttribute('name');
-    if (name && !SENSITIVE_NAME.test(name) && !looksSensitive(name)) return name.slice(0, MAX_LABEL);
+    const aria = sanitizeAttributeValue('aria-label', el.getAttribute('aria-label'));
+    if (aria) return aria.slice(0, MAX_LABEL);
+    const name = sanitizeAttributeValue('name', el.getAttribute('name'));
+    if (name) return name.slice(0, MAX_LABEL);
     return null;
   }
   if (!rawText || looksSensitive(rawText)) return null;
@@ -199,10 +214,10 @@ export function captureElement(el) {
   return {
     selector: buildSelector(el),
     tagName: el.tagName.toLowerCase(),
-    id: el.id || null,
+    id: sanitizeAttributeValue('id', el.getAttribute('id')),
     className: classNameOf(el),
-    role: el.getAttribute('role'),
-    ariaLabel: el.getAttribute('aria-label'),
+    role: sanitizeAttributeValue('role', el.getAttribute('role')),
+    ariaLabel: sanitizeAttributeValue('aria-label', el.getAttribute('aria-label')),
     dataset: el.dataset ? Object.keys(el.dataset) : [],
     attributes: collectAttributes(el),
     ancestors: summarizeAncestors(el),

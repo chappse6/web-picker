@@ -11,8 +11,8 @@ Official evidence: [contest overview and report template](https://osscontest.kr/
 - [x] AI-model attachment removed because Web Picker embeds/applies no model.
 - [x] Development-assistant use disclosed without representing it as product model integration.
 - [x] Matching DOCX and PDF created from same report.
-- [x] CycloneDX 1.5 JSON generated at `artifacts/sbom.cdx.json`.
-- [x] Human-readable locked dependency/license inventory generated at `docs/dependencies.md`.
+- [x] Validated reproducible CycloneDX 1.5 JSON generated at `artifacts/sbom.cdx.json`; two runs are byte-identical.
+- [x] Human-readable inventory recursively covers all 218 unique component PURLs, licenses, roles, and HTTPS sources at `docs/dependencies.md`.
 - [x] Architecture, security boundaries, limitations, and reproduction commands documented.
 - [x] Three-minute timed video script prepared.
 
@@ -22,7 +22,7 @@ Official evidence: [contest overview and report template](https://osscontest.kr/
 - [x] `npm run build`
 - [x] `npm run test:e2e`
 - [x] `npm run benchmark` twice with byte-identical JSON
-- [x] `npm run sbom` and CycloneDX metadata/component validation
+- [x] `npm run sbom` twice, byte comparison, recursive 218-component/license/source validation
 - [x] `npm audit --omit=dev` reports 0 known production vulnerabilities.
 - [ ] Development-only Vitest 2/Vite/esbuild advisories resolved. **Deferred:** compatible update unavailable; only breaking Vitest 4 upgrade offered. Not part of shipped runtime.
 
