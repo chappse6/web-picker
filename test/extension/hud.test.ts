@@ -59,6 +59,8 @@ describe('chip status', () => {
     expect(fab.classList.contains('agent')).toBe(true);
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-qbadge')!.textContent).toBe('4');
+    expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(true);
     expect(fab.title).toContain('webpicker');
     expect(fab.title).toContain('대기 4');
   });
@@ -85,6 +87,8 @@ describe('chip status', () => {
     applyChipStatus(fab, { connected: false, pending: 2, agentLive: false });
     expect(fab.classList.contains('err')).toBe(true);
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-pick')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
     expect(fab.title).toContain('연결 안 됨');
   });
 });
