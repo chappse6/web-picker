@@ -45,7 +45,10 @@ One command (macOS / Linux):
 curl -fsSL https://raw.githubusercontent.com/chappse6/web-picker/master/install.sh | bash
 ```
 
-That clones into `~/web-picker`, installs, builds, and registers Codex (and Claude Code if the `claude` CLI is on your PATH). Chrome still needs one click: **Load unpacked** → `~/web-picker/extension`.
+That clones into `~/web-picker`, installs, builds, registers MCP, and opens a
+dedicated Chrome window with the extension already loaded. Chrome blocks silent
+install into your everyday profile; to keep it in normal Chrome, **Load unpacked**
+once → `~/web-picker/extension`.
 
 Already cloned?
 

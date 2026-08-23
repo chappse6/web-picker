@@ -89,16 +89,24 @@ if [[ "$(uname -s)" == Darwin ]]; then
   open -R "$ROOT/extension" >/dev/null 2>&1 || true
 fi
 
+if [[ "${WEB_PICKER_SKIP_CHROME:-}" != "1" ]]; then
+  echo "[web-picker] opening Chrome with the extension loaded..."
+  nohup "$ROOT/scripts/launch-chrome.sh" >/dev/null 2>&1 &
+fi
+
 cat <<EOF
 
 Web Picker is ready at:
   $ROOT
 
-One remaining click (Chrome cannot be fully automated):
-  1. chrome://extensions  →  Developer mode  →  Load unpacked
-  2. Select:  $ROOT/extension
+Chrome cannot silently install into your everyday profile.
+This installer opened a dedicated Chrome window with the extension already on.
+Use that window, or Load unpacked once into your normal Chrome:
+  $ROOT/extension
 
-Then open a localhost page and click the webpicker chip.
+Everyday Chrome later:
+  chrome://extensions → Developer mode → Load unpacked → the folder above
+
 In Claude Code / Codex, call:  connect_web_picker
 
 EOF
