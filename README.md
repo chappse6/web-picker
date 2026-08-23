@@ -39,24 +39,20 @@ never leaking sensitive values.
 
 ## Install
 
+One command (macOS / Linux):
+
 ```bash
-./bootstrap.sh          # macOS/Linux  (installs deps + builds)
-# or
-pwsh ./bootstrap.ps1    # Windows
+curl -fsSL https://raw.githubusercontent.com/chappse6/web-picker/master/install.sh | bash
 ```
 
-Then:
+That clones into `~/web-picker`, installs, builds, and registers Codex (and Claude Code if the `claude` CLI is on your PATH). Chrome still needs one click: **Load unpacked** → `~/web-picker/extension`.
 
-1. **Load the Chrome extension**
-   `chrome://extensions` → enable **Developer mode** → **Load unpacked** →
-   select the `extension/` folder.
+Already cloned?
 
-2. **Register the MCP server** with your agent:
-   ```bash
-   ./scripts/register-claude-code.sh   # Claude Code
-   ./scripts/register-codex.sh         # Codex
-   ```
-   Both point the agent at `scripts/run.cjs`, which lazily starts the daemon.
+```bash
+./install.sh            # macOS/Linux
+pwsh ./bootstrap.ps1    # Windows
+```
 
 ## Five-minute judge path (no keys, no accounts)
 
