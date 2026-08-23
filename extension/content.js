@@ -1,10 +1,8 @@
 /**
- * Content script: floating pill, panel, pick mode, submit.
+ * Content script: minimized webpicker chip, pick mode, slim composer.
  *
  * Classic content script (not a module) so it dynamically imports the ESM logic
  * modules via chrome.runtime.getURL. Only activates on localhost pages.
- *
- * UI follows the "green · minimal" design (Claude Design project "웹픽커 UI").
  */
 (async () => {
   const url = (p) => chrome.runtime.getURL(p);
@@ -14,10 +12,11 @@
   if (window.__webPickerLoaded) return;
   window.__webPickerLoaded = true;
 
-  const { STYLES, HIGHLIGHT_ID, PANEL_ID, FAB_ID, PICK_ICON } = await import(url('styles.js'));
+  const { STYLES, HIGHLIGHT_ID, PANEL_ID, FAB_ID } = await import(url('styles.js'));
   const { createPicker } = await import(url('pick.js'));
   const { capturePayload } = await import(url('capture.js'));
   const { runtimeErrorGuidance } = await import(url('error-guidance.js'));
+  const hud = await import(url('hud.js'));
 
   async function send(type, payload) {
     const response = await chrome.runtime.sendMessage({ type, payload });
@@ -28,8 +27,8 @@
   }
 
   const ICON_X = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  const ICON_LOCK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8a919b" stroke-width="2.4"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
-  const ICON_CHECK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const ICON_CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const CHROME_IDS = [FAB_ID, PANEL_ID, HIGHLIGHT_ID];
 
   const style = document.createElement('style');
   style.textContent = STYLES;
@@ -38,104 +37,231 @@
   let panel = null;
   let highlight = null;
   let selected = null;
+  let lastConnected = null;
+  let lastGuidance = null;
+  let suppressClick = false;
 
   const fab = document.createElement('button');
   fab.id = FAB_ID;
-  fab.title = '웹픽커';
-  fab.innerHTML = `${PICK_ICON('#052e16', 16)}<span>요소 선택</span>`;
-  fab.addEventListener('click', togglePanel);
+  fab.type = 'button';
+  fab.title = hud.BRAND;
+  fab.innerHTML = hud.chipInnerHTML();
   document.documentElement.appendChild(fab);
+  applySavedPos();
+  wireDrag();
 
-  function togglePanel() {
-    if (panel) return closePanel();
-    panel = document.createElement('div');
-    panel.id = PANEL_ID;
-    document.documentElement.appendChild(panel);
-    renderIdle();
-    refreshStatus();
+  function isOurUi(el) {
+    return hud.isChromeTarget(el, CHROME_IDS);
+  }
+
+  function applySavedPos() {
+    const saved = hud.loadPos();
+    if (!saved) return;
+    applyPos(hud.clampPos(saved.left, saved.top, fab.offsetWidth, fab.offsetHeight, innerWidth, innerHeight));
+  }
+
+  function applyPos(pos) {
+    Object.assign(fab.style, {
+      left: `${pos.left}px`,
+      top: `${pos.top}px`,
+      right: 'auto',
+      bottom: 'auto',
+    });
+  }
+
+  function wireDrag() {
+    const pointer = { id: null, sx: 0, sy: 0, sl: 0, st: 0, dragged: false };
+
+    fab.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      const r = fab.getBoundingClientRect();
+      pointer.id = e.pointerId;
+      pointer.sx = e.clientX;
+      pointer.sy = e.clientY;
+      pointer.sl = r.left;
+      pointer.st = r.top;
+      pointer.dragged = false;
+      fab.setPointerCapture?.(e.pointerId);
+      fab.classList.add('wp-dragging');
+    });
+
+    fab.addEventListener('pointermove', (e) => {
+      if (pointer.id !== e.pointerId) return;
+      const dx = e.clientX - pointer.sx;
+      const dy = e.clientY - pointer.sy;
+      if (!pointer.dragged && !hud.dragThresholdExceeded(dx, dy)) return;
+      pointer.dragged = true;
+      applyPos(hud.clampPos(
+        pointer.sl + dx,
+        pointer.st + dy,
+        fab.offsetWidth,
+        fab.offsetHeight,
+        innerWidth,
+        innerHeight,
+      ));
+      placePanel();
+    });
+
+    function endPointer(e) {
+      if (pointer.id !== e.pointerId) return;
+      fab.releasePointerCapture?.(e.pointerId);
+      fab.classList.remove('wp-dragging');
+      if (pointer.dragged) {
+        suppressClick = true;
+        hud.savePos({ left: parseFloat(fab.style.left), top: parseFloat(fab.style.top) });
+      }
+      pointer.id = null;
+      pointer.dragged = false;
+    }
+
+    fab.addEventListener('pointerup', endPointer);
+    fab.addEventListener('pointercancel', endPointer);
+    fab.addEventListener('click', (e) => {
+      if (suppressClick) {
+        e.preventDefault();
+        suppressClick = false;
+        return;
+      }
+      onChipActivate();
+    });
+  }
+
+  function onChipActivate() {
+    if (picker.isActive()) {
+      picker.stop();
+      leavePickMode();
+      clearHighlight();
+      return;
+    }
+    if (panel) {
+      closePanel();
+      return;
+    }
+    if (lastConnected === false) {
+      renderError();
+      return;
+    }
+    startPick();
+  }
+
+  function leavePickMode() {
+    document.documentElement.classList.remove('wp-picking');
+    fab.classList.remove('picking');
   }
 
   function closePanel() {
+    picker.stop();
+    leavePickMode();
     panel?.remove();
     panel = null;
     selected = null;
     clearHighlight();
   }
 
-  function header(title, right) {
-    return `<div class="wp-hd">${PICK_ICON('#22c55e', 18)}<span class="wp-ttl">${title}</span>${right || ''}
-      <button class="wp-x" id="wp-close">${ICON_X}</button></div>`;
+  function ensurePanel() {
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = PANEL_ID;
+    document.documentElement.appendChild(panel);
+    return panel;
+  }
+
+  function placePanel() {
+    if (!panel) return;
+    const pos = hud.panelAnchor(
+      fab.getBoundingClientRect(),
+      panel.offsetWidth || 280,
+      panel.offsetHeight || 160,
+      innerWidth,
+      innerHeight,
+    );
+    Object.assign(panel.style, {
+      left: `${pos.left}px`,
+      top: `${pos.top}px`,
+      right: 'auto',
+      bottom: 'auto',
+    });
+  }
+
+  function header(title) {
+    return `<div class="wp-hd"><span class="wp-ttl">${title}</span>
+      <button class="wp-x" id="wp-close" type="button">${ICON_X}</button></div>`;
   }
 
   function wireCommon() {
     panel.querySelector('#wp-close')?.addEventListener('click', closePanel);
-  }
-
-  // ---- idle ----
-  function renderIdle() {
-    panel.innerHTML =
-      header('웹픽커', '<span class="wp-conn" id="wp-conn"><span class="wp-dot" style="background:#d0d5dd"></span>확인 중…</span>') +
-      `<div class="wp-bd">
-        <div class="wp-srow"><span class="wp-slbl">현재 페이지</span><span class="wp-sval">localhost 허용</span></div>
-        <div class="wp-srow"><span class="wp-slbl">대기 중 요청</span><span class="wp-sval" id="wp-pending">—</span></div>
-        <button class="wp-btn wp-btn-pri" id="wp-pick" style="width:100%;margin-top:14px">요소 선택 시작</button>
-        <p class="wp-note" style="margin:12px 2px 0">localhost 전용 · 텍스트·HTML 기본 마스킹</p>
-        <div id="wp-status"></div>
-      </div>`;
-    wireCommon();
-    panel.querySelector('#wp-pick').addEventListener('click', startPick);
+    requestAnimationFrame(placePanel);
   }
 
   async function refreshStatus() {
-    const conn = panel?.querySelector('#wp-conn');
-    const pending = panel?.querySelector('#wp-pending');
+    if (!fab.isConnected) return false;
     try {
       const s = await send('web-picker:get-status');
-      const n = (s.queue || []).filter((r) => r.status === 'pending').length;
-      if (conn) conn.innerHTML = '<span class="wp-dot" style="background:#22c55e"></span>연결됨';
-      if (conn) conn.className = 'wp-conn ok';
-      if (pending) pending.textContent = String(n);
+      lastConnected = true;
+      lastGuidance = null;
+      hud.applyChipStatus(fab, hud.connectionState({ ok: true, status: s }));
+      return true;
     } catch (error) {
-      if (conn) conn.innerHTML = '<span class="wp-dot" style="background:#f04438"></span>데몬 미실행';
-      if (conn) conn.className = 'wp-conn err';
-      if (pending) pending.textContent = '—';
-      const guidance = runtimeErrorGuidance(error?.code);
-      showStateCard(guidance.title, guidance.note, '#f04438');
+      lastConnected = false;
+      lastGuidance = runtimeErrorGuidance(error?.code);
+      hud.applyChipStatus(fab, hud.connectionState({ ok: false }));
+      return false;
     }
+  }
+
+  function renderError() {
+    const guidance = lastGuidance || runtimeErrorGuidance('daemon-unavailable');
+    ensurePanel();
+    panel.innerHTML =
+      header('webpicker') +
+      `<div class="wp-bd">${stateCard(guidance.title, guidance.note, '#f04438')}</div>`;
+    wireCommon();
+  }
+
+  function stateCard(title, note, color) {
+    return `<div class="wp-state">
+      <span class="wp-dot" style="background:${color}"></span>
+      <div><div class="wp-state-title">${escapeHtml(title)}</div>
+      <p class="wp-note" style="color:#667085">${note}</p></div></div>`;
   }
 
   function showStateCard(title, note, color) {
     const host = panel?.querySelector('#wp-status');
     if (!host) return;
-    host.innerHTML = `<div class="wp-state" style="margin-top:12px">
-      <span class="wp-dot" style="background:${color}"></span>
-      <div><div class="wp-state-title">${escapeHtml(title)}</div><p class="wp-note" style="color:#667085;margin:0">${note}</p></div></div>`;
+    host.innerHTML = `<div style="margin-top:10px">${stateCard(title, note, color)}</div>`;
   }
 
   function setStatus(msg, kind) {
     const host = panel?.querySelector('#wp-status');
     if (!host) return;
     const color = kind === 'err' ? '#d92d20' : kind === 'ok' ? '#15803d' : '#98a2b3';
-    host.innerHTML = `<p class="wp-note" style="margin:12px 2px 0;color:${color}">${escapeHtml(msg)}</p>`;
+    host.innerHTML = `<p class="wp-note" style="margin-top:10px;color:${color}">${escapeHtml(msg)}</p>`;
   }
 
-  // ---- pick mode ----
   const picker = createPicker(document, {
+    ignore: isOurUi,
     onHover: showHighlight,
     onPick: onPicked,
     onCancel: () => {
+      leavePickMode();
       clearHighlight();
-      setStatus('선택 취소됨 (Esc)', null);
     },
   });
 
   function startPick() {
-    setStatus('요소 위에 마우스를 올리고 클릭하세요. Esc로 취소.', null);
+    if (panel) {
+      panel.remove();
+      panel = null;
+    }
+    selected = null;
+    clearHighlight();
+    document.documentElement.classList.add('wp-picking');
+    fab.classList.add('picking');
     picker.start();
   }
 
   function showHighlight(el) {
-    if (!el || el === fab || el.closest?.(`#${PANEL_ID}`) || el.closest?.(`#${FAB_ID}`)) return;
+    if (!el || isOurUi(el)) return;
     const r = el.getBoundingClientRect();
     if (!highlight) {
       highlight = document.createElement('div');
@@ -143,12 +269,13 @@
       highlight.innerHTML = '<span class="wp-sel-label"></span>';
       document.documentElement.appendChild(highlight);
     }
+    highlight.classList.remove('wp-locked');
     Object.assign(highlight.style, {
-      left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
+      left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`,
     });
     const tag = el.tagName.toLowerCase();
     highlight.querySelector('.wp-sel-label').textContent =
-      `${el.id ? tag + '#' + el.id : tag} · ${Math.round(r.width)}×${Math.round(r.height)}`;
+      `${el.id ? `${tag}#${el.id}` : tag} · ${Math.round(r.width)}×${Math.round(r.height)}`;
   }
 
   function clearHighlight() {
@@ -157,18 +284,21 @@
   }
 
   function onPicked(el) {
-    clearHighlight();
+    if (!el || isOurUi(el)) return;
+    leavePickMode();
     selected = el;
+    showHighlight(el);
+    highlight?.classList.add('wp-locked');
     const cap = capturePayload(el, { userQuestion: '' }).element;
     const dims = `${Math.round(cap.rect.width)}×${Math.round(cap.rect.height)}`;
+    ensurePanel();
     panel.innerHTML =
-      header('선택한 요소', `<span class="wp-badge">${ICON_LOCK}마스킹됨</span>`) +
+      header(`${escapeHtml(cap.selector)} · ${dims}`) +
       `<div class="wp-bd">
-        <div class="wp-code" style="margin-bottom:12px">${escapeHtml(cap.selector)} <span class="wp-dim">· ${dims}</span></div>
         <textarea class="wp-ta" id="wp-q" placeholder="이 요소를 어떻게 고칠까요?"></textarea>
-        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
-          <button class="wp-link" id="wp-again">다시 선택</button>
-          <button class="wp-btn wp-btn-pri" id="wp-send" style="flex:1">보내기</button>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
+          <button class="wp-link" id="wp-again" type="button">다시 선택</button>
+          <button class="wp-btn wp-btn-pri" id="wp-send" type="button" style="flex:1">보내기</button>
         </div>
         <div id="wp-status"></div>
       </div>`;
@@ -187,36 +317,55 @@
       const payload = capturePayload(selected, { userQuestion: q });
       const res = await send('web-picker:create-request', payload);
       selected = null;
-      let pending = null;
-      try {
-        const s = await send('web-picker:get-status');
-        pending = (s.queue || []).filter((r) => r.status === 'pending').length;
-      } catch {}
-      renderSuccess(res.id, pending);
+      await refreshStatus();
+      renderSuccess(res.id);
     } catch (error) {
       const guidance = runtimeErrorGuidance(error?.code);
       showStateCard(guidance.title, guidance.note, '#f04438');
     }
   }
 
-  function renderSuccess(id, pending) {
-    const tail = pending == null ? '' : ` 대기 ${pending}건.`;
+  function renderSuccess() {
+    ensurePanel();
     panel.innerHTML =
-      header('웹픽커', '') +
+      header('webpicker') +
       `<div class="wp-bd wp-succ">
         <div class="wp-succ-icon">${ICON_CHECK}</div>
         <div class="wp-succ-title">요청을 큐에 보냈습니다</div>
-        <p class="wp-note" style="font-size:12px;color:#667085;margin:0 6px 18px">Claude Code 또는 Codex에서 처리하세요.${tail}</p>
-        <button class="wp-btn wp-btn-pri" id="wp-new" style="width:100%">새 요청</button>
+        <p class="wp-note" style="color:#667085;margin:0 0 14px">에이전트에서 이어서 처리하세요.</p>
+        <button class="wp-btn wp-btn-pri" id="wp-new" type="button" style="width:100%">새 요청</button>
       </div>`;
     wireCommon();
     panel.querySelector('#wp-new').addEventListener('click', () => {
-      renderIdle();
-      refreshStatus();
+      closePanel();
+      startPick();
     });
   }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
+
+  addEventListener('resize', () => {
+    if (!fab.style.left) return;
+    applyPos(hud.clampPos(
+      parseFloat(fab.style.left),
+      parseFloat(fab.style.top),
+      fab.offsetWidth,
+      fab.offsetHeight,
+      innerWidth,
+      innerHeight,
+    ));
+    placePanel();
+  });
+
+  const poll = setInterval(() => {
+    if (!fab.isConnected) {
+      clearInterval(poll);
+      return;
+    }
+    refreshStatus();
+  }, hud.STATUS_POLL_MS);
+
+  refreshStatus();
 })();

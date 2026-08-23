@@ -81,10 +81,12 @@ is needed.
    (Install step 2).
 
 4. **Pick an element**
-   - Click the **픽** button (bottom-right) → **요소 선택**.
+   - Click the **webpicker** chip (bottom-right; drag it if it covers the target).
    - Hover the **main area's 저장 button** (inside the profile card) and click it.
    - Type a request, e.g. `이 버튼을 파란색으로`, and click **보내기**.
    - You should see `요청을 큐에 보냈습니다`.
+   - The chip keeps a green/red connection dot. When requests are waiting, the
+     pending count appears in a green circle.
 
 5. **Pull it from the agent**
    In a Claude Code / Codex session:
