@@ -5,8 +5,10 @@ import {
   chipInnerHTML,
   clampPos,
   connectionState,
+  createReloadTracker,
   dragThresholdExceeded,
   HUD_POS_KEY,
+  inflightCount,
   isChromeTarget,
   loadPos,
   panelAnchor,
@@ -29,12 +31,15 @@ describe('connection and queue', () => {
 
   it('treats a reachable daemon as connected and an active session as live', () => {
     expect(connectionState({ ok: false })).toEqual({
-      connected: false, pending: 0, agentLive: false,
+      connected: false, pending: 0, inflight: 0, agentLive: false,
     });
     expect(connectionState({
       ok: true,
       status: { activeSessionId: 'agent-1', queue: [{ status: 'pending' }] },
-    })).toEqual({ connected: true, pending: 1, agentLive: true });
+    })).toEqual({ connected: true, pending: 1, inflight: 1, agentLive: true });
+    expect(inflightCount({
+      queue: [{ status: 'pending' }, { status: 'claimed' }, { status: 'resolved' }],
+    })).toBe(2);
   });
 
   it('hides empty queues and caps large counts', () => {
@@ -56,6 +61,22 @@ describe('chip status', () => {
     expect(fab.querySelector('#wp-qbadge')!.textContent).toBe('4');
     expect(fab.title).toContain('webpicker');
     expect(fab.title).toContain('대기 4');
+  });
+
+  it('swaps the queue badge for a reload button after in-flight work finishes', () => {
+    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    const fab = document.getElementById('wp-fab')!;
+    const tracker = createReloadTracker();
+    expect(tracker.apply({ queue: [{ status: 'pending' }] })).toBe(false);
+    applyChipStatus(fab, { connected: true, pending: 1, inflight: 1, readyToReload: false });
+    expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(false);
+    expect(fab.querySelector('#wp-reload')!.hidden).toBe(true);
+
+    expect(tracker.apply({ queue: [{ status: 'resolved' }] })).toBe(true);
+    applyChipStatus(fab, { connected: true, pending: 0, inflight: 0, readyToReload: true });
+    expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-reload')!.hidden).toBe(false);
+    expect(fab.title).toContain('새로고침');
   });
 
   it('uses a red dot and hides the badge when disconnected', () => {

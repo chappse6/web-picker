@@ -12,14 +12,43 @@ export function pendingCount(status) {
   return (status?.queue || []).filter((row) => row.status === 'pending').length;
 }
 
+export function inflightCount(status) {
+  return (status?.queue || []).filter((row) => row.status === 'pending' || row.status === 'claimed').length;
+}
+
 export function connectionState({ ok, status } = {}) {
   if (!ok) {
-    return { connected: false, pending: 0, agentLive: false };
+    return { connected: false, pending: 0, inflight: 0, agentLive: false };
   }
   return {
     connected: true,
     pending: pendingCount(status),
+    inflight: inflightCount(status),
     agentLive: Boolean(status?.activeSessionId),
+  };
+}
+
+export function createReloadTracker() {
+  let sawWork = false;
+  let ready = false;
+  return {
+    noteSubmit() {
+      sawWork = true;
+      ready = false;
+    },
+    apply(status) {
+      const n = inflightCount(status);
+      if (n > 0) {
+        sawWork = true;
+        ready = false;
+      } else if (sawWork) {
+        ready = true;
+      }
+      return ready;
+    },
+    ready() {
+      return ready;
+    },
   };
 }
 
@@ -69,32 +98,41 @@ export function dragThresholdExceeded(dx, dy, threshold = DRAG_THRESHOLD_PX) {
   return (dx * dx) + (dy * dy) > (threshold * threshold);
 }
 
+const RELOAD_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.2-5.8"/><path d="M21 3v6h-6"/></svg>';
+
 export function chipInnerHTML(brand = BRAND) {
   return `<span class="wp-dot" id="wp-dot" aria-hidden="true"></span>`
     + `<span class="wp-brand">${brand}</span>`
-    + `<span class="wp-qbadge" id="wp-qbadge" hidden></span>`;
+    + `<span class="wp-qbadge" id="wp-qbadge" hidden></span>`
+    + `<span class="wp-reload" id="wp-reload" hidden role="button" aria-label="새로고침해서 변경 보기">${RELOAD_ICON}</span>`;
 }
 
 export function applyChipStatus(root, state) {
   if (!root) return;
   const connected = Boolean(state?.connected);
   const pending = Number.isInteger(state?.pending) ? state.pending : 0;
+  const inflight = Number.isInteger(state?.inflight) ? state.inflight : pending;
   const agentLive = Boolean(connected && state?.agentLive);
+  const readyToReload = Boolean(connected && state?.readyToReload);
   const badge = root.querySelector('#wp-qbadge');
-  const label = connected ? queueLabel(pending) : '';
+  const reload = root.querySelector('#wp-reload');
+  const label = connected ? queueLabel(inflight) : '';
+  const showReload = readyToReload && !label;
 
   root.classList.toggle('ok', connected);
   root.classList.toggle('err', !connected);
   root.classList.toggle('agent', agentLive);
+  root.classList.toggle('reloadable', showReload);
 
   if (badge) {
     badge.hidden = !label;
     badge.textContent = label;
   }
+  if (reload) reload.hidden = !showReload;
 
   const conn = !connected ? '연결 안 됨' : agentLive ? '에이전트 연결됨' : '연결됨';
-  const queue = label ? ` · 대기 ${pending}` : '';
-  const title = `${BRAND} · ${conn}${queue}`;
+  const extra = label ? ` · 대기 ${inflight}` : showReload ? ' · 완료 · 새로고침' : '';
+  const title = `${BRAND} · ${conn}${extra}`;
   root.title = title;
   root.setAttribute('aria-label', title);
 }

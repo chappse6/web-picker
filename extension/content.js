@@ -40,6 +40,7 @@
   let lastConnected = null;
   let lastGuidance = null;
   let suppressClick = false;
+  const reloadTracker = hud.createReloadTracker();
 
   const fab = document.createElement('button');
   fab.id = FAB_ID;
@@ -49,6 +50,11 @@
   document.documentElement.appendChild(fab);
   applySavedPos();
   wireDrag();
+  fab.querySelector('#wp-reload')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    location.reload();
+  });
 
   function isOurUi(el) {
     return hud.isChromeTarget(el, CHROME_IDS);
@@ -199,7 +205,8 @@
       const s = await send('web-picker:get-status');
       lastConnected = true;
       lastGuidance = null;
-      hud.applyChipStatus(fab, hud.connectionState({ ok: true, status: s }));
+      const readyToReload = reloadTracker.apply(s);
+      hud.applyChipStatus(fab, { ...hud.connectionState({ ok: true, status: s }), readyToReload });
       if (panel?.dataset.wpState === 'error') {
         panel.remove();
         panel = null;
@@ -323,6 +330,7 @@
       const payload = capturePayload(selected, { userQuestion: q });
       const res = await send('web-picker:create-request', payload);
       selected = null;
+      reloadTracker.noteSubmit();
       await refreshStatus();
       renderSuccess(res.id);
     } catch (error) {

@@ -46,6 +46,14 @@ export const STYLES = `
   text-align: center; letter-spacing: 0;
 }
 #${FAB_ID} .wp-qbadge[hidden] { display: none !important; }
+#${FAB_ID} .wp-reload {
+  width: 18px; height: 18px; padding: 0; border: 0; border-radius: 999px;
+  background: #22c55e; color: #052e16; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+#${FAB_ID} .wp-reload:hover { background: #16a34a; }
+#${FAB_ID} .wp-reload[hidden] { display: none !important; }
+#${FAB_ID}.reloadable { box-shadow: 0 0 0 2px rgba(34,197,94,.28), 0 10px 28px rgba(15,23,42,.28); }
 
 #${PANEL_ID} {
   position: fixed; z-index: 2147483646;
