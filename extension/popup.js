@@ -8,9 +8,13 @@ async function refresh() {
   const dot = document.getElementById('dot');
   const ver = document.getElementById('ver');
   try {
-    const v = await (await fetch(`${BASE}/version.json`)).json();
+    const vRes = await fetch(`${BASE}/version.json`);
+    if (!vRes.ok) throw new Error('version');
+    const v = await vRes.json();
     ver.textContent = `v${v.version}`;
-    const s = await (await fetch(`${BASE}/status`)).json();
+    const sRes = await fetch(`${BASE}/status`);
+    if (!sRes.ok) throw new Error('status');
+    const s = await sRes.json();
     const n = (s.queue || []).filter((r) => r.status === 'pending').length;
     const live = Boolean(s.activeSessionId);
     daemon.textContent = live ? '에이전트 연결됨' : '연결됨';

@@ -75,12 +75,27 @@ describe('extension HTTP api — exact extension origin', () => {
     expect(state.list()).toHaveLength(1);
   });
 
+  it('accepts POST /requests with no Origin header (MV3 worker / local tools)', async () => {
+    const state = createState();
+    const api = extensionApi(state);
+    const res = await api(
+      req({
+        method: 'POST',
+        path: '/requests',
+        headers: {},
+        body: payload(),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(state.list()).toHaveLength(1);
+  });
+
   it.each([
-    ['absent', undefined],
     ['localhost page', 'http://localhost:3000'],
     ['127.0.0.1 page', 'http://127.0.0.1:5500'],
     ['public page', 'https://evil.example.com'],
     ['wrong extension', 'chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+    ['opaque null origin', 'null'],
   ])('rejects %s origin with 403 and does not enqueue', async (_label, origin) => {
     const state = createState();
     const api = extensionApi(state);
@@ -427,8 +442,23 @@ describe('server adapter — binds 127.0.0.1 and wires both apis', () => {
     }
   });
 
+  it('answers a missing-Origin preflight with 204 so the MV3 worker can proceed', async () => {
+    const server = createServer({
+      state: createState(),
+      version: '0.1.0',
+      token: 'x',
+      expectedExtensionOrigin: EXTENSION_ORIGIN,
+    });
+    const { port } = await server.listen(0);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/requests`, { method: 'OPTIONS' });
+      expect(res.status).toBe(204);
+    } finally {
+      await server.close();
+    }
+  });
+
   it.each([
-    ['absent', undefined],
     ['localhost page', 'http://localhost:3000'],
     ['public page', 'https://evil.example.com'],
     ['wrong extension', 'chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],

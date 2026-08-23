@@ -31,7 +31,7 @@ The extension and coding agent have different lifetimes. A singleton daemon owns
 ## Security boundaries
 
 - Browser activation is limited to `localhost`, `127.0.0.1`, and `*.localhost` pages.
-- The service worker accepts messages only from Chrome-verified allowed tabs. Daemon browser endpoints require the manifest-pinned `chrome-extension://mnglicpibnccgcifnndemfpidkcgboli` origin; the value is public identity, not a secret.
+- The service worker accepts messages only from Chrome-verified allowed tabs. Daemon browser endpoints accept the manifest-pinned `chrome-extension://mnglicpibnccgcifnndemfpidkcgboli` origin, or a missing Origin (Chrome MV3 workers and local tools often omit it on 127.0.0.1). A present Origin from a page or another extension is rejected. The value is public identity, not a secret.
 - The daemon binds only to `127.0.0.1`. MCP-side IPC requires a per-run token stored with mode `0600` and compared in constant time. Every queue read or mutation also requires the active session ID; takeover immediately denies the stale owner, including a long-poll response that settles after ownership changes.
 - Request bodies are capped at 64 KiB. Shared Zod schemas cap the user question at 2,000 characters and locator candidates at eight.
 - Input values and email-like, long-digit, or token-shaped strings are excluded before relay. One capture-source filter covers selector construction, top-level `id`/`class`/`role`/`aria-label`, allowlisted attributes, ancestor summaries, and masked HTML; safe class tokens remain available for target identity. Sensitive `name` attributes and dataset key names are excluded after DOM camelCase normalization; dataset values never leave the page.

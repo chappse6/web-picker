@@ -200,6 +200,10 @@
       lastConnected = true;
       lastGuidance = null;
       hud.applyChipStatus(fab, hud.connectionState({ ok: true, status: s }));
+      if (panel?.dataset.wpState === 'error') {
+        panel.remove();
+        panel = null;
+      }
       return true;
     } catch (error) {
       lastConnected = false;
@@ -212,6 +216,7 @@
   function renderError() {
     const guidance = lastGuidance || runtimeErrorGuidance('daemon-unavailable');
     ensurePanel();
+    panel.dataset.wpState = 'error';
     panel.innerHTML =
       header('webpicker') +
       `<div class="wp-bd">${stateCard(guidance.title, guidance.note, '#f04438')}</div>`;
@@ -292,6 +297,7 @@
     const cap = capturePayload(el, { userQuestion: '' }).element;
     const dims = `${Math.round(cap.rect.width)}×${Math.round(cap.rect.height)}`;
     ensurePanel();
+    delete panel.dataset.wpState;
     panel.innerHTML =
       header(`${escapeHtml(cap.selector)} · ${dims}`) +
       `<div class="wp-bd">
@@ -327,6 +333,7 @@
 
   function renderSuccess() {
     ensurePanel();
+    delete panel.dataset.wpState;
     panel.innerHTML =
       header('webpicker') +
       `<div class="wp-bd wp-succ">
