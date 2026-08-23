@@ -52,7 +52,7 @@ it('initializes through manifest-accessible modules and renders safe guidance', 
     expect(accessible.has(modulePath), `${modulePath} must be web-accessible`).toBe(true);
   }
 
-  document.querySelector<HTMLButtonElement>('#wp-fab')!.click();
+  document.querySelector<HTMLElement>('#wp-dot')!.click();
   await vi.waitFor(() => {
     expect(document.documentElement.textContent).toContain(
       '요청을 짧게 줄이거나 더 작은 요소를 다시 선택해 주세요.',
@@ -80,7 +80,7 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
   await import('../../extension/content.js?minimized-chip');
 
   const fab = await vi.waitFor(() => {
-    const node = document.querySelector<HTMLButtonElement>('#wp-fab');
+    const node = document.querySelector<HTMLElement>('#wp-fab');
     expect(node?.classList.contains('ok')).toBe(true);
     return node!;
   });
@@ -91,6 +91,8 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
   expect(document.querySelector('#wp-panel')).toBeNull();
 
   fab.click();
+  expect(document.documentElement.classList.contains('wp-picking')).toBe(false);
+  document.querySelector<HTMLElement>('#wp-pick')!.click();
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
 
   const target = document.getElementById('profile-save')!;

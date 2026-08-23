@@ -35,18 +35,20 @@ export const STYLES = `
   background: #f04438;
   box-shadow: 0 0 0 3px rgba(240,68,56,.22);
 }
-#${FAB_ID} .wp-pick {
-  display: inline-flex; flex: none; width: 22px; height: 22px;
-  border-radius: 50%; cursor: pointer;
+#${FAB_ID} .wp-hit {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  cursor: pointer;
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
 }
-#${FAB_ID} .wp-pick[hidden] { display: none !important; }
-#${FAB_ID} .wp-pick:hover {
+#${FAB_ID} .wp-hit:hover {
   transform: scale(1.12);
   filter: brightness(1.14);
   box-shadow: 0 0 0 3px rgba(200,245,66,.3), 0 0 14px rgba(200,245,66,.45);
 }
-#${FAB_ID} .wp-pick:active { transform: scale(1.02); }
+#${FAB_ID} .wp-hit:active { transform: scale(1.02); }
+#${FAB_ID} .wp-pick[hidden],
+#${FAB_ID} .wp-reload[hidden] { display: none !important; }
 #${FAB_ID}.picking .wp-pick {
   box-shadow: 0 0 0 3px rgba(200,245,66,.4), 0 0 12px rgba(200,245,66,.5);
 }
@@ -59,12 +61,8 @@ export const STYLES = `
 }
 #${FAB_ID} .wp-qbadge[hidden] { display: none !important; }
 #${FAB_ID} .wp-reload {
-  width: 18px; height: 18px; padding: 0; border: 0; border-radius: 999px;
-  background: #22c55e; color: #052e16; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
+  background: #22c55e; color: #052e16;
 }
-#${FAB_ID} .wp-reload:hover { background: #16a34a; }
-#${FAB_ID} .wp-reload[hidden] { display: none !important; }
 #${FAB_ID}.reloadable { box-shadow: 0 0 0 2px rgba(34,197,94,.28), 0 10px 28px rgba(15,23,42,.28); }
 
 #${PANEL_ID} {
@@ -125,8 +123,8 @@ export const STYLES = `
 html.wp-picking, html.wp-picking * { cursor: crosshair !important; }
 html.wp-picking #${FAB_ID}, html.wp-picking #${FAB_ID} *,
 html.wp-picking #${PANEL_ID}, html.wp-picking #${PANEL_ID} * { cursor: grab !important; }
-html.wp-picking #${FAB_ID} .wp-pick { cursor: pointer !important; }
-#${FAB_ID} .wp-pick { cursor: pointer !important; }
+html.wp-picking #${FAB_ID} .wp-hit { cursor: pointer !important; }
+#${FAB_ID} .wp-hit { cursor: pointer !important; }
 
 #${HIGHLIGHT_ID} {
   position: fixed; z-index: 2147483645; pointer-events: none;

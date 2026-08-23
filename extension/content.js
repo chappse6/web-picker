@@ -42,17 +42,38 @@
   let suppressClick = false;
   const reloadTracker = hud.createReloadTracker();
 
-  const fab = document.createElement('button');
+  const fab = document.createElement('div');
   fab.id = FAB_ID;
-  fab.type = 'button';
   fab.title = hud.BRAND;
   fab.innerHTML = hud.chipInnerHTML();
   document.documentElement.appendChild(fab);
   applySavedPos();
   wireDrag();
+  fab.querySelector('#wp-pick')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    onChipActivate();
+  });
+  fab.querySelector('#wp-dot')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    onChipActivate();
+  });
   fab.querySelector('#wp-reload')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
     location.reload();
   });
 
@@ -122,14 +143,6 @@
 
     fab.addEventListener('pointerup', endPointer);
     fab.addEventListener('pointercancel', endPointer);
-    fab.addEventListener('click', (e) => {
-      if (suppressClick) {
-        e.preventDefault();
-        suppressClick = false;
-        return;
-      }
-      onChipActivate();
-    });
   }
 
   function onChipActivate() {

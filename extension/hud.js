@@ -107,11 +107,11 @@ export const PICK_MARK = '<svg class="wp-pick-svg" width="22" height="22" viewBo
   + '</svg>';
 
 export function chipInnerHTML(brand = BRAND) {
-  return `<span class="wp-dot" id="wp-dot" aria-hidden="true"></span>`
-    + `<span class="wp-pick" id="wp-pick" hidden role="button" aria-label="요소 선택">${PICK_MARK}</span>`
+  return `<span class="wp-dot" id="wp-dot" role="button" aria-label="연결 안 됨"></span>`
+    + `<span class="wp-hit wp-pick" id="wp-pick" hidden role="button" aria-label="요소 선택">${PICK_MARK}</span>`
     + `<span class="wp-brand">${brand}</span>`
     + `<span class="wp-qbadge" id="wp-qbadge" hidden></span>`
-    + `<span class="wp-reload" id="wp-reload" hidden role="button" aria-label="새로고침해서 변경 보기">${RELOAD_ICON}</span>`;
+    + `<span class="wp-hit wp-reload" id="wp-reload" hidden role="button" aria-label="새로고침해서 변경 보기">${RELOAD_ICON}</span>`;
 }
 
 export function applyChipStatus(root, state) {
