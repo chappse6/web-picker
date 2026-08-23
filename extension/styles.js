@@ -13,7 +13,7 @@ export const STYLES = `
 #${FAB_ID} {
   position: fixed; right: 16px; bottom: 16px; z-index: 2147483646;
   display: inline-flex; align-items: center; gap: 8px;
-  height: 36px; padding: 0 11px 0 10px;
+  height: 36px; padding: 0 16px 0 10px;
   background: rgba(11, 18, 32, .92); color: #f8fafc;
   border: 1px solid rgba(255,255,255,.08); border-radius: 999px;
   cursor: grab; user-select: none; touch-action: none;
@@ -53,6 +53,10 @@ export const STYLES = `
   box-shadow: 0 0 0 3px rgba(200,245,66,.4), 0 0 12px rgba(200,245,66,.5);
 }
 #${FAB_ID} .wp-pick-svg { display: block; pointer-events: none; }
+#${FAB_ID} .wp-aside {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; min-height: 22px; margin-left: 4px;
+}
 #${FAB_ID} .wp-qbadge {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   background: #22c55e; color: #052e16;
