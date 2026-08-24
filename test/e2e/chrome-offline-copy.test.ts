@@ -81,7 +81,7 @@ describe('real Chrome extension offline clipboard copy', () => {
 
     const success = page.locator('.wp-succ-title');
     await success.waitFor({ state: 'visible' });
-    expect(await success.textContent()).toBe('클립보드에 복사했습니다');
+    expect(await success.textContent()).toBe('복사했습니다');
 
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     expect(copied).toContain('파란색');

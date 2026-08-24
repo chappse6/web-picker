@@ -36,6 +36,7 @@
   document.documentElement.appendChild(style);
 
   let panel = null;
+  let panelBox = null;
   let highlight = null;
   let selected = null;
   let lastAgentLive = false;
@@ -173,6 +174,7 @@
     leavePickMode();
     panel?.remove();
     panel = null;
+    panelBox = null;
     selected = null;
     clearHighlight();
   }
@@ -195,9 +197,37 @@
       innerWidth,
       innerHeight,
     );
+    applyPanelBox({
+      left: pos.left,
+      top: pos.top,
+      width: panel.offsetWidth || panelBox?.width || 280,
+      height: panel.offsetHeight || panelBox?.height || 160,
+    });
+  }
+
+  function rememberPanelBox() {
+    if (!panel) return;
+    panelBox = {
+      left: parseFloat(panel.style.left) || 0,
+      top: parseFloat(panel.style.top) || 0,
+      width: panel.offsetWidth || 280,
+      height: panel.offsetHeight || 160,
+    };
+  }
+
+  function applyPanelBox(box) {
+    if (!panel || !box) return;
+    panelBox = {
+      left: Number(box.left) || 0,
+      top: Number(box.top) || 0,
+      width: Number(box.width) || 280,
+      height: Number(box.height) || 160,
+    };
     Object.assign(panel.style, {
-      left: `${pos.left}px`,
-      top: `${pos.top}px`,
+      left: `${panelBox.left}px`,
+      top: `${panelBox.top}px`,
+      width: `${panelBox.width}px`,
+      height: `${panelBox.height}px`,
       right: 'auto',
       bottom: 'auto',
     });
@@ -208,9 +238,16 @@
       <button class="wp-x" id="wp-close" type="button">${ICON_X}</button></div>`;
   }
 
-  function wireCommon() {
+  function wireCommon(keepBox = false) {
     panel.querySelector('#wp-close')?.addEventListener('click', closePanel);
-    requestAnimationFrame(placePanel);
+    if (keepBox && panelBox) {
+      applyPanelBox(panelBox);
+      return;
+    }
+    requestAnimationFrame(() => {
+      placePanel();
+      rememberPanelBox();
+    });
   }
 
   async function refreshStatus() {
@@ -336,51 +373,33 @@
       if (!mcpMode) {
         const copied = await share.copyText(share.formatClipboardPrompt(payload));
         if (!copied) return setStatus('클립보드에 복사하지 못했습니다.', 'err');
-        selected = null;
-        renderCopied();
+        rememberPanelBox();
+        renderDone('복사했습니다', '일반 채팅에 붙여넣으면 됩니다');
         return;
       }
-      const res = await send('web-picker:create-request', payload);
-      selected = null;
+      await send('web-picker:create-request', payload);
+      rememberPanelBox();
       reloadTracker.noteSubmit();
       await refreshStatus();
-      renderSuccess(res.id);
+      renderDone('보냈습니다', '에이전트에서 이어서 처리하세요');
     } catch (error) {
       const guidance = runtimeErrorGuidance(error?.code);
       showStateCard(guidance.title, guidance.note, '#f04438');
     }
   }
 
-  function renderCopied() {
+  function renderDone(title, note) {
     ensurePanel();
     delete panel.dataset.wpState;
     panel.innerHTML =
       header('webpicker') +
       `<div class="wp-bd wp-succ">
         <div class="wp-succ-icon">${ICON_CHECK}</div>
-        <div class="wp-succ-title">클립보드에 복사했습니다</div>
-        <p class="wp-note" style="color:#667085;margin:0 0 14px">일반 채팅에 붙여넣으면 됩니다. 개인정보는 마스킹되어 있습니다.</p>
-        <button class="wp-btn wp-btn-pri" id="wp-new" type="button" style="width:100%">새 요청</button>
+        <div class="wp-succ-title">${escapeHtml(title)}</div>
+        <p class="wp-note">${escapeHtml(note)}</p>
+        <button class="wp-link" id="wp-new" type="button">새 요청</button>
       </div>`;
-    wireCommon();
-    panel.querySelector('#wp-new').addEventListener('click', () => {
-      closePanel();
-      startPick();
-    });
-  }
-
-  function renderSuccess() {
-    ensurePanel();
-    delete panel.dataset.wpState;
-    panel.innerHTML =
-      header('webpicker') +
-      `<div class="wp-bd wp-succ">
-        <div class="wp-succ-icon">${ICON_CHECK}</div>
-        <div class="wp-succ-title">요청을 큐에 보냈습니다</div>
-        <p class="wp-note" style="color:#667085;margin:0 0 14px">에이전트에서 이어서 처리하세요.</p>
-        <button class="wp-btn wp-btn-pri" id="wp-new" type="button" style="width:100%">새 요청</button>
-      </div>`;
-    wireCommon();
+    wireCommon(true);
     panel.querySelector('#wp-new').addEventListener('click', () => {
       closePanel();
       startPick();

@@ -90,8 +90,11 @@ it('copies a masked prompt when MCP is not connected', async () => {
 
   await vi.waitFor(() => {
     expect(writeText).toHaveBeenCalled();
-    expect(document.documentElement.textContent).toContain('클립보드에 복사했습니다');
+    expect(document.documentElement.textContent).toContain('복사했습니다');
   });
+  const done = document.querySelector<HTMLElement>('#wp-panel')!;
+  expect(done.style.width).toBeTruthy();
+  expect(done.style.height).toBeTruthy();
   const copied = String(writeText.mock.calls[0]?.[0] || '');
   expect(copied).toContain('파란색');
   expect(copied).not.toContain('owner@example.com');
@@ -131,7 +134,7 @@ it('still queues the request when an MCP session is live', async () => {
   document.querySelector<HTMLElement>('#wp-send')!.click();
 
   await vi.waitFor(() => {
-    expect(document.documentElement.textContent).toContain('요청을 큐에 보냈습니다');
+    expect(document.documentElement.textContent).toContain('보냈습니다');
   });
   expect(writeText).not.toHaveBeenCalled();
   expect(sendMessage.mock.calls.some((call) => call[0]?.type === 'web-picker:create-request')).toBe(true);

@@ -113,7 +113,7 @@ describe('real Chrome extension to MCP round trip', () => {
 
     const success = page.locator('.wp-succ-title');
     await success.waitFor({ state: 'visible' });
-    expect(await success.textContent()).toBe('요청을 큐에 보냈습니다');
+    expect(await success.textContent()).toBe('보냈습니다');
 
     client = createClient({
       launcher: createLauncher({ home: runtimeHome, port: DAEMON_PORT }),

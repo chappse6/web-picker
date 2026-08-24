@@ -70,6 +70,7 @@ export const STYLES = `
 
 #${PANEL_ID} {
   position: fixed; z-index: 2147483646;
+  display: flex; flex-direction: column;
   width: 280px; max-height: 70vh; overflow: auto;
   background: #fff; color: #0b0f12;
   border: 1px solid #e6e8ec; border-radius: 14px;
@@ -112,12 +113,17 @@ export const STYLES = `
 
 #${PANEL_ID} .wp-note { font-size: 11.5px; color: #98a2b3; line-height: 1.55; margin: 0; }
 
-#${PANEL_ID} .wp-succ { text-align: center; padding: 18px 12px 12px; }
-#${PANEL_ID} .wp-succ-icon {
-  width: 40px; height: 40px; border-radius: 50%; background: #dcfce7;
-  display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;
+#${PANEL_ID} .wp-succ {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 6px; padding: 8px 4px 10px;
 }
-#${PANEL_ID} .wp-succ-title { font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+#${PANEL_ID} .wp-succ-icon {
+  width: 32px; height: 32px; border-radius: 50%; background: #dcfce7;
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+#${PANEL_ID} .wp-succ-title { font-size: 13.5px; font-weight: 600; margin: 0; }
+#${PANEL_ID} .wp-succ .wp-link { margin-top: 4px; }
 
 #${PANEL_ID} .wp-state { display: flex; gap: 10px; align-items: flex-start; padding: 2px 0; }
 #${PANEL_ID} .wp-state .wp-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; margin-top: 5px; }

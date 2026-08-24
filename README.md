@@ -83,7 +83,7 @@ is needed.
    - Click the **webpicker** chip (bottom-right; drag it if it covers the target).
    - Hover the **main area's 저장 button** (inside the profile card) and click it.
    - Type a request, e.g. `이 버튼을 파란색으로`, and click **보내기**.
-   - You should see `요청을 큐에 보냈습니다`.
+   - You should see `보냈습니다`.
    - The chip keeps a green/red connection dot. When requests are waiting, the
      pending count appears in a green circle.
 
