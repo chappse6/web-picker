@@ -161,6 +161,8 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
     return node!;
   });
 
+  expect(fab.style.left).toBeTruthy();
+  expect(fab.style.right).toBe('auto');
   expect(fab.textContent).toContain('webpicker');
   expect(fab.textContent).not.toContain('요소 선택');
   expect(document.querySelector('#wp-qbadge')?.textContent).toBe('2');

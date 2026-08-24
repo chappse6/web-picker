@@ -5,6 +5,7 @@ import {
   chipInnerHTML,
   clampPos,
   connectionState,
+  defaultPos,
   createReloadTracker,
   dragThresholdExceeded,
   HUD_POS_KEY,
@@ -107,10 +108,14 @@ describe('drag geometry', () => {
     expect(clampPos(500, 400, 120, 36, 400, 300)).toEqual({ left: 272, top: 256 });
   });
 
-  it('anchors the composer above the chip when there is room', () => {
-    const pos = panelAnchor({ top: 220, bottom: 256, left: 200, right: 340 }, 280, 140, 400, 400);
+  it('starts the chip from the left instead of reserving a right slot', () => {
+    expect(defaultPos(120, 36, 400, 300)).toEqual({ left: 16, top: 248 });
+  });
+
+  it('anchors the composer from the chip left edge', () => {
+    const pos = panelAnchor({ top: 220, bottom: 256, left: 16, right: 140 }, 280, 140, 400, 400);
     expect(pos.top).toBe(70);
-    expect(pos.left).toBe(60);
+    expect(pos.left).toBe(16);
   });
 
   it('persists finite positions only', () => {

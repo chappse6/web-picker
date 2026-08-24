@@ -11,9 +11,9 @@ export const PICK_ICON = (stroke = '#052e16', size = 16) =>
 
 export const STYLES = `
 #${FAB_ID} {
-  position: fixed; right: 16px; bottom: 16px; z-index: 2147483646;
+  position: fixed; left: 16px; bottom: 16px; z-index: 2147483646;
   display: inline-flex; align-items: center; gap: 8px;
-  height: 36px; padding: 0 16px 0 10px;
+  height: 36px; padding: 0 12px 0 10px;
   background: rgba(11, 18, 32, .92); color: #f8fafc;
   border: 1px solid rgba(255,255,255,.08); border-radius: 999px;
   cursor: grab; user-select: none; touch-action: none;
@@ -54,8 +54,7 @@ export const STYLES = `
 }
 #${FAB_ID} .wp-pick-svg { display: block; pointer-events: none; }
 #${FAB_ID} .wp-aside {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 22px; min-height: 22px; margin-left: 4px;
+  display: inline-flex; align-items: center;
 }
 #${FAB_ID} .wp-qbadge {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;

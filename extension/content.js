@@ -83,8 +83,8 @@
 
   function applySavedPos() {
     const saved = hud.loadPos();
-    if (!saved) return;
-    applyPos(hud.clampPos(saved.left, saved.top, fab.offsetWidth, fab.offsetHeight, innerWidth, innerHeight));
+    const pos = saved || hud.defaultPos(fab.offsetWidth, fab.offsetHeight, innerWidth, innerHeight);
+    applyPos(hud.clampPos(pos.left, pos.top, fab.offsetWidth, fab.offsetHeight, innerWidth, innerHeight));
   }
 
   function applyPos(pos) {

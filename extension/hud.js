@@ -57,6 +57,12 @@ export function queueLabel(count) {
   return count > 99 ? '99+' : String(count);
 }
 
+export const DEFAULT_PAD = 16;
+
+export function defaultPos(width, height, vw, vh, pad = DEFAULT_PAD) {
+  return clampPos(pad, (Number(vh) || 0) - (Number(height) || 0) - pad, width, height, vw, vh, pad);
+}
+
 export function clampPos(left, top, width, height, vw, vh, pad = 8) {
   const w = Math.max(0, Number(width) || 0);
   const h = Math.max(0, Number(height) || 0);
@@ -155,6 +161,6 @@ export function panelAnchor(chipRect, panelWidth, panelHeight, vw, vh) {
   const ph = panelHeight || 160;
   const above = chipRect.top - ph - 10;
   const top = above >= 8 ? above : chipRect.bottom + 10;
-  const left = chipRect.right - pw;
+  const left = chipRect.left;
   return clampPos(left, top, pw, ph, vw, vh);
 }
