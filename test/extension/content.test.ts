@@ -115,7 +115,11 @@ it('still queues the request when an MCP session is live', async () => {
   document.body.innerHTML = '<main><button id="profile-save">저장</button></main>';
   await import('../../extension/content.js?mcp-queue');
 
-  const pick = await vi.waitFor(() => document.querySelector<HTMLElement>('#wp-pick')!);
+  const pick = await vi.waitFor(() => {
+    const node = document.querySelector<HTMLElement>('#wp-pick');
+    expect(node?.hidden).toBe(false);
+    return node!;
+  });
   pick.click();
   const target = document.getElementById('profile-save')!;
   target.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
