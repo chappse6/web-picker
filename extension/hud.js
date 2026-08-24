@@ -114,7 +114,7 @@ export function dragThresholdExceeded(dx, dy, threshold = DRAG_THRESHOLD_PX) {
 
 const RELOAD_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.2-5.8"/><path d="M21 3v6h-6"/></svg>';
 
-export const PICK_MARK = '<svg class="wp-pick-svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">'
+export const PICK_MARK = '<svg class="wp-pick-svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">'
   + '<circle cx="12" cy="12" r="12" fill="#3a3f48"/>'
   + '<rect x="4.6" y="7.2" width="14.6" height="9.4" rx="2.4" fill="none" stroke="#c8f542" stroke-width="1.7" stroke-dasharray="2.5 1.9" stroke-linecap="round"/>'
   + '<path fill="#fff" d="M13.05 12.35v6.7l1.55-1.85 1.7 3.7 1.25-.55-1.7-3.65 2.15-.35z"/>'

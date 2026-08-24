@@ -38,21 +38,26 @@ export const STYLES = `
 #${FAB_ID} .wp-hit {
   appearance: none; border: 0; background: transparent; padding: 0; color: inherit;
   display: inline-flex; align-items: center; justify-content: center;
-  flex: none; width: 36px; height: 36px; border-radius: 50%;
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
   cursor: pointer; touch-action: manipulation; pointer-events: auto;
   position: relative; z-index: 2;
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
 }
-#${FAB_ID} .wp-hit:hover {
-  transform: scale(1.12);
-  filter: brightness(1.14);
-  box-shadow: 0 0 0 3px rgba(200,245,66,.3), 0 0 14px rgba(200,245,66,.45);
+#${FAB_ID} .wp-hit::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
 }
-#${FAB_ID} .wp-hit:active { transform: scale(1.02); }
+#${FAB_ID} .wp-hit:hover {
+  transform: scale(1.06);
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 2px rgba(200,245,66,.28);
+}
+#${FAB_ID} .wp-hit:active { transform: scale(0.98); }
 #${FAB_ID} .wp-pick[hidden],
 #${FAB_ID} .wp-reload[hidden] { display: none !important; }
 #${FAB_ID}.picking .wp-pick {
-  box-shadow: 0 0 0 3px rgba(200,245,66,.4), 0 0 12px rgba(200,245,66,.5);
+  box-shadow: 0 0 0 2px rgba(200,245,66,.35);
 }
 #${FAB_ID} .wp-pick-svg { display: block; pointer-events: none; }
 #${FAB_ID} .wp-aside {
