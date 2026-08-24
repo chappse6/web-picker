@@ -28,12 +28,12 @@ export const STYLES = `
 #${FAB_ID} .wp-brand { font-weight: 650; }
 #${FAB_ID} .wp-dot {
   width: 8px; height: 8px; border-radius: 50%; flex: none;
-  background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.22);
+  background: #f04438; box-shadow: 0 0 0 3px rgba(240,68,56,.22);
 }
 #${FAB_ID} .wp-dot[hidden] { display: none !important; }
-#${FAB_ID}.err .wp-dot {
-  background: #f04438;
-  box-shadow: 0 0 0 3px rgba(240,68,56,.22);
+#${FAB_ID}.ok .wp-dot,
+#${FAB_ID}.agent .wp-dot {
+  background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.22);
 }
 #${FAB_ID}.agent .wp-dot {
   animation: wp-dot-pulse 1.4s ease-in-out infinite;

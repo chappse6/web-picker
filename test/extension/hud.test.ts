@@ -73,12 +73,12 @@ describe('chip status', () => {
     const fab = document.getElementById('wp-fab')!;
     const tracker = createReloadTracker();
     expect(tracker.apply({ queue: [{ status: 'pending' }] })).toBe(false);
-    applyChipStatus(fab, { connected: true, pending: 1, inflight: 1, readyToReload: false });
+    applyChipStatus(fab, { connected: true, pending: 1, inflight: 1, agentLive: true, readyToReload: false });
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-reload')!.hidden).toBe(true);
 
     expect(tracker.apply({ queue: [{ status: 'resolved' }] })).toBe(true);
-    applyChipStatus(fab, { connected: true, pending: 0, inflight: 0, readyToReload: true });
+    applyChipStatus(fab, { connected: true, pending: 0, inflight: 0, agentLive: true, readyToReload: true });
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
     expect(fab.querySelector('#wp-reload')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(true);
@@ -90,6 +90,8 @@ describe('chip status', () => {
     const fab = document.getElementById('wp-fab')!;
     applyChipStatus(fab, { connected: true, pending: 0, agentLive: false });
     expect(fab.title).toContain('일반 모드');
+    expect(fab.classList.contains('err')).toBe(true);
+    expect(fab.classList.contains('ok')).toBe(false);
     expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
     expect(fab.querySelector('.wp-aside #wp-dot')).not.toBeNull();
@@ -106,11 +108,24 @@ describe('chip status', () => {
     expect(fab.querySelector('.wp-aside #wp-dot')).not.toBeNull();
   });
 
+  it('turns the right-hand dot red after the agent session is released', () => {
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
+    const fab = document.getElementById('wp-fab')!;
+    applyChipStatus(fab, { connected: true, pending: 0, agentLive: true });
+    expect(fab.classList.contains('ok')).toBe(true);
+    applyChipStatus(fab, { connected: true, pending: 2, agentLive: false, readyToReload: true });
+    expect(fab.classList.contains('err')).toBe(true);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
+    expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-reload')!.hidden).toBe(true);
+  });
+
   it('uses a red dot and hides the badge when disconnected', () => {
     document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
     const fab = document.getElementById('wp-fab')!;
     applyChipStatus(fab, { connected: false, pending: 2, agentLive: false });
     expect(fab.classList.contains('err')).toBe(true);
+    expect(fab.classList.contains('ok')).toBe(false);
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
     expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);

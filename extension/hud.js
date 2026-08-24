@@ -141,13 +141,13 @@ export function applyChipStatus(root, state) {
   const reload = root.querySelector('#wp-reload');
   const pick = root.querySelector('#wp-pick');
   const dot = root.querySelector('#wp-dot');
-  const label = connected ? queueLabel(inflight) : '';
+  const label = agentLive ? queueLabel(inflight) : '';
   const showBadge = Boolean(label);
-  const showReload = readyToReload && !label;
+  const showReload = Boolean(agentLive && readyToReload && !label);
   const showDot = !showBadge && !showReload;
 
-  root.classList.toggle('ok', connected);
-  root.classList.toggle('err', !connected);
+  root.classList.toggle('ok', agentLive);
+  root.classList.toggle('err', !agentLive);
   root.classList.toggle('agent', agentLive);
   root.classList.toggle('reloadable', showReload);
 
