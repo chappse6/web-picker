@@ -63,6 +63,7 @@ describe('chip status', () => {
     expect(fab.querySelector('#wp-qbadge')!.textContent).toBe('4');
     expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(true);
+    expect(fab.querySelector('.wp-aside #wp-dot')).not.toBeNull();
     expect(fab.title).toContain('webpicker');
     expect(fab.title).toContain('대기 4');
   });
@@ -80,6 +81,7 @@ describe('chip status', () => {
     applyChipStatus(fab, { connected: true, pending: 0, inflight: 0, readyToReload: true });
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
     expect(fab.querySelector('#wp-reload')!.hidden).toBe(false);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(true);
     expect(fab.title).toContain('새로고침');
   });
 
@@ -89,6 +91,19 @@ describe('chip status', () => {
     applyChipStatus(fab, { connected: true, pending: 0, agentLive: false });
     expect(fab.title).toContain('일반 모드');
     expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
+    expect(fab.querySelector('.wp-aside #wp-dot')).not.toBeNull();
+  });
+
+  it('keeps a status dot in the reserved right slot when idle', () => {
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
+    const fab = document.getElementById('wp-fab')!;
+    applyChipStatus(fab, { connected: true, pending: 0, agentLive: true });
+    expect(fab.classList.contains('ok')).toBe(true);
+    expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-reload')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
+    expect(fab.querySelector('.wp-aside #wp-dot')).not.toBeNull();
   });
 
   it('uses a red dot and hides the badge when disconnected', () => {

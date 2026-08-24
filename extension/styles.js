@@ -28,12 +28,15 @@ export const STYLES = `
 #${FAB_ID} .wp-brand { font-weight: 650; }
 #${FAB_ID} .wp-dot {
   width: 8px; height: 8px; border-radius: 50%; flex: none;
-  background: #667085; box-shadow: 0 0 0 3px rgba(148,163,184,.16);
+  background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.22);
 }
 #${FAB_ID} .wp-dot[hidden] { display: none !important; }
 #${FAB_ID}.err .wp-dot {
   background: #f04438;
   box-shadow: 0 0 0 3px rgba(240,68,56,.22);
+}
+#${FAB_ID}.agent .wp-dot {
+  animation: wp-dot-pulse 1.4s ease-in-out infinite;
 }
 #${FAB_ID} .wp-hit {
   appearance: none; border: 0; background: transparent; padding: 0; color: inherit;
@@ -61,7 +64,8 @@ export const STYLES = `
 }
 #${FAB_ID} .wp-pick-svg { display: block; pointer-events: none; }
 #${FAB_ID} .wp-aside {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; min-width: 22px; height: 22px; flex: none;
 }
 #${FAB_ID} .wp-qbadge {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;

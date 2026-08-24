@@ -121,10 +121,10 @@ export const PICK_MARK = '<svg class="wp-pick-svg" width="20" height="20" viewBo
   + '</svg>';
 
 export function chipInnerHTML(brand = BRAND) {
-  return `<span class="wp-dot" id="wp-dot" hidden aria-hidden="true"></span>`
-    + `<button type="button" class="wp-hit wp-pick" id="wp-pick" aria-label="요소 선택">${PICK_MARK}</button>`
+  return `<button type="button" class="wp-hit wp-pick" id="wp-pick" aria-label="요소 선택">${PICK_MARK}</button>`
     + `<span class="wp-brand">${brand}</span>`
     + `<span class="wp-aside">`
+    + `<span class="wp-dot" id="wp-dot" aria-hidden="true"></span>`
     + `<span class="wp-qbadge" id="wp-qbadge" hidden></span>`
     + `<span class="wp-hit wp-reload" id="wp-reload" hidden role="button" aria-label="새로고침해서 변경 보기">${RELOAD_ICON}</span>`
     + `</span>`;
@@ -142,7 +142,9 @@ export function applyChipStatus(root, state) {
   const pick = root.querySelector('#wp-pick');
   const dot = root.querySelector('#wp-dot');
   const label = connected ? queueLabel(inflight) : '';
+  const showBadge = Boolean(label);
   const showReload = readyToReload && !label;
+  const showDot = !showBadge && !showReload;
 
   root.classList.toggle('ok', connected);
   root.classList.toggle('err', !connected);
@@ -150,9 +152,12 @@ export function applyChipStatus(root, state) {
   root.classList.toggle('reloadable', showReload);
 
   if (pick) pick.hidden = false;
-  if (dot) dot.hidden = connected;
+  if (dot) {
+    dot.hidden = !showDot;
+    dot.setAttribute('aria-hidden', showDot ? 'false' : 'true');
+  }
   if (badge) {
-    badge.hidden = !label;
+    badge.hidden = !showBadge;
     badge.textContent = label;
   }
   if (reload) reload.hidden = !showReload;

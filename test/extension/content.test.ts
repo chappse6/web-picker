@@ -54,6 +54,8 @@ it('initializes through manifest-accessible modules and starts pick in general m
 
   const pick = document.querySelector<HTMLElement>('#wp-pick')!;
   expect(pick.hidden).toBe(false);
+  const dot = document.querySelector<HTMLElement>('#wp-fab .wp-aside #wp-dot')!;
+  expect(dot.hidden).toBe(false);
   pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, cancelable: true }));
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
   pick.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0, cancelable: true }));

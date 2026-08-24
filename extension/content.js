@@ -48,10 +48,10 @@
   fab.title = hud.BRAND;
   fab.innerHTML = hud.chipInnerHTML();
   document.documentElement.appendChild(fab);
+  hud.applyChipStatus(fab, hud.connectionState({ ok: false }));
   applySavedPos();
   wireDrag();
   bindAction('#wp-pick', onChipActivate);
-  bindAction('#wp-dot', onChipActivate);
   bindAction('#wp-reload', () => { location.reload(); });
 
   function bindAction(id, handler) {
