@@ -172,7 +172,7 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
   expect(document.documentElement.classList.contains('wp-picking')).toBe(false);
   const pick = document.querySelector<HTMLElement>('#wp-pick')!;
   pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
-  pick.click();
+  pick.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }));
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
 
   const target = document.getElementById('profile-save')!;

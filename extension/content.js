@@ -49,33 +49,36 @@
   document.documentElement.appendChild(fab);
   applySavedPos();
   wireDrag();
-  fab.querySelector('#wp-pick')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
-    onChipActivate();
-  });
-  fab.querySelector('#wp-dot')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
-    onChipActivate();
-  });
-  fab.querySelector('#wp-reload')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
-    location.reload();
-  });
+  bindAction('#wp-pick', onChipActivate);
+  bindAction('#wp-dot', onChipActivate);
+  bindAction('#wp-reload', () => { location.reload(); });
+
+  function bindAction(id, handler) {
+    const el = fab.querySelector(id);
+    if (!el) return;
+    let handled = false;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+    });
+    el.addEventListener('pointerup', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handled = true;
+      handler();
+      queueMicrotask(() => { handled = false; });
+    });
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (handled || suppressClick) {
+        suppressClick = false;
+        return;
+      }
+      handler();
+    });
+  }
 
   function isOurUi(el) {
     return hud.isChromeTarget(el, CHROME_IDS);
