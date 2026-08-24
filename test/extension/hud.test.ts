@@ -54,7 +54,7 @@ describe('connection and queue', () => {
 
 describe('chip status', () => {
   it('paints the brand chip with a green queue badge when work is waiting', () => {
-    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
     const fab = document.getElementById('wp-fab')!;
     applyChipStatus(fab, { connected: true, pending: 4, agentLive: true });
     expect(fab.classList.contains('ok')).toBe(true);
@@ -68,7 +68,7 @@ describe('chip status', () => {
   });
 
   it('swaps the queue badge for a reload button after in-flight work finishes', () => {
-    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
     const fab = document.getElementById('wp-fab')!;
     const tracker = createReloadTracker();
     expect(tracker.apply({ queue: [{ status: 'pending' }] })).toBe(false);
@@ -84,7 +84,7 @@ describe('chip status', () => {
   });
 
   it('labels a reachable daemon without an agent as general mode', () => {
-    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
     const fab = document.getElementById('wp-fab')!;
     applyChipStatus(fab, { connected: true, pending: 0, agentLive: false });
     expect(fab.title).toContain('일반 모드');
@@ -92,12 +92,12 @@ describe('chip status', () => {
   });
 
   it('uses a red dot and hides the badge when disconnected', () => {
-    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    document.body.innerHTML = `<div id="wp-fab">${chipInnerHTML()}</div>`;
     const fab = document.getElementById('wp-fab')!;
     applyChipStatus(fab, { connected: false, pending: 2, agentLive: false });
     expect(fab.classList.contains('err')).toBe(true);
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
-    expect(fab.querySelector('#wp-pick')!.hidden).toBe(true);
+    expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
     expect(fab.title).toContain('일반 모드');
   });
@@ -152,5 +152,13 @@ describe('chrome hit-test', () => {
     document.body.innerHTML = '<div id="wp-fab"><span id="wp-pick">pick</span><span class="wp-brand">webpicker</span></div>';
     expect(isActionTarget(document.getElementById('wp-pick'))).toBe(true);
     expect(isActionTarget(document.querySelector('.wp-brand'))).toBe(false);
+    const inner = document.createElement('svg');
+    document.getElementById('wp-pick')!.appendChild(inner);
+    const event = {
+      composedPath() {
+        return [inner, document.getElementById('wp-pick'), document.getElementById('wp-fab')];
+      },
+    };
+    expect(isActionTarget(inner, event)).toBe(true);
   });
 });

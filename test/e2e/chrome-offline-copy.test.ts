@@ -69,7 +69,7 @@ describe('real Chrome extension offline clipboard copy', () => {
     await page.locator('#wp-fab').waitFor({ state: 'visible' });
     expect(await page.locator('#wp-fab').getAttribute('class')).toContain('err');
 
-    await page.locator('#wp-dot').evaluate((el) => (el as HTMLElement).click());
+    await page.locator('#wp-pick').click();
     await page.locator('html.wp-picking').waitFor();
     await page.locator('#profile-save').click();
     await page.locator('#wp-q').waitFor({ state: 'visible' });

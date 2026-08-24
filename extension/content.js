@@ -57,28 +57,30 @@
   function bindAction(id, handler) {
     const el = fab.querySelector(id);
     if (!el) return;
-    let handled = false;
-    el.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-    });
-    el.addEventListener('pointerup', (e) => {
-      if (e.button !== 0) return;
+    let ignoreClick = false;
+    const run = (e) => {
+      if (typeof e.button === 'number' && e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
-      handled = true;
+      e.stopImmediatePropagation?.();
       handler();
-      queueMicrotask(() => { handled = false; });
-    });
+    };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      ignoreClick = true;
+      run(e);
+    }, true);
     el.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (handled || suppressClick) {
+      e.stopImmediatePropagation?.();
+      if (ignoreClick || suppressClick) {
+        ignoreClick = false;
         suppressClick = false;
         return;
       }
       handler();
-    });
+    }, true);
   }
 
   function isOurUi(el) {
@@ -105,7 +107,7 @@
 
     fab.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      if (hud.isActionTarget(e.target)) return;
+      if (hud.isActionTarget(e.target, e)) return;
       const r = fab.getBoundingClientRect();
       pointer.id = e.pointerId;
       pointer.sx = e.clientX;

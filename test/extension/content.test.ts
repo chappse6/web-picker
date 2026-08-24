@@ -52,7 +52,12 @@ it('initializes through manifest-accessible modules and starts pick in general m
     expect(accessible.has(modulePath), `${modulePath} must be web-accessible`).toBe(true);
   }
 
-  document.querySelector<HTMLElement>('#wp-dot')!.click();
+  const pick = document.querySelector<HTMLElement>('#wp-pick')!;
+  expect(pick.hidden).toBe(false);
+  pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, cancelable: true }));
+  expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
+  pick.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0, cancelable: true }));
+  pick.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }));
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
   expect(document.documentElement.textContent).not.toContain('SECRET_QUESTION');
 });
@@ -174,8 +179,9 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
   fab.click();
   expect(document.documentElement.classList.contains('wp-picking')).toBe(false);
   const pick = document.querySelector<HTMLElement>('#wp-pick')!;
-  pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
-  pick.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }));
+  pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, cancelable: true }));
+  pick.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0, cancelable: true }));
+  pick.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }));
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
 
   const target = document.getElementById('profile-save')!;

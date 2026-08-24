@@ -102,7 +102,9 @@ export function isChromeTarget(el, ids = []) {
   return ids.some((id) => el.id === id || Boolean(el.closest(`#${id}`)));
 }
 
-export function isActionTarget(el) {
+export function isActionTarget(el, event) {
+  const path = typeof event?.composedPath === 'function' ? event.composedPath() : [];
+  if (path.some((node) => node && ACTION_IDS.includes(node.id))) return true;
   return isChromeTarget(el, ACTION_IDS);
 }
 
@@ -119,8 +121,8 @@ export const PICK_MARK = '<svg class="wp-pick-svg" width="22" height="22" viewBo
   + '</svg>';
 
 export function chipInnerHTML(brand = BRAND) {
-  return `<span class="wp-dot" id="wp-dot" role="button" aria-label="연결 안 됨"></span>`
-    + `<span class="wp-hit wp-pick" id="wp-pick" hidden role="button" aria-label="요소 선택">${PICK_MARK}</span>`
+  return `<span class="wp-dot" id="wp-dot" hidden aria-hidden="true"></span>`
+    + `<button type="button" class="wp-hit wp-pick" id="wp-pick" aria-label="요소 선택">${PICK_MARK}</button>`
     + `<span class="wp-brand">${brand}</span>`
     + `<span class="wp-aside">`
     + `<span class="wp-qbadge" id="wp-qbadge" hidden></span>`
@@ -147,7 +149,7 @@ export function applyChipStatus(root, state) {
   root.classList.toggle('agent', agentLive);
   root.classList.toggle('reloadable', showReload);
 
-  if (pick) pick.hidden = !connected;
+  if (pick) pick.hidden = false;
   if (dot) dot.hidden = connected;
   if (badge) {
     badge.hidden = !label;

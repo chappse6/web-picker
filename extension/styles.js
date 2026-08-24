@@ -36,9 +36,11 @@ export const STYLES = `
   box-shadow: 0 0 0 3px rgba(240,68,56,.22);
 }
 #${FAB_ID} .wp-hit {
+  appearance: none; border: 0; background: transparent; padding: 0; color: inherit;
   display: inline-flex; align-items: center; justify-content: center;
-  flex: none; width: 22px; height: 22px; border-radius: 50%;
-  cursor: pointer;
+  flex: none; width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer; touch-action: manipulation; pointer-events: auto;
+  position: relative; z-index: 2;
   transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
 }
 #${FAB_ID} .wp-hit:hover {
