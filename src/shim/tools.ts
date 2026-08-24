@@ -90,7 +90,7 @@ export function createTools(client: WebPickerClient): WebPickerTools {
       if (!r.claimed) {
         return text(`Could not claim the picker (held by session ${r.activeSessionId}). ${OCCUPIED_HINT}`);
       }
-      return text(`Connected. You hold the web picker session. ${r.pending} pending request(s).`);
+      return text(`Connected. You hold the web picker session. ${r.pending} pending request(s). Call list_web_requests to read the queue, or watch_web_requests to wait for the next pick from the extension.`);
     },
 
     async list_web_requests() {

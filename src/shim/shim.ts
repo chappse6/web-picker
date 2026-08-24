@@ -22,7 +22,7 @@ const HEARTBEAT_INTERVAL_MS = 10_000;
 const TOOL_DEFS = [
   {
     name: 'connect_web_picker',
-    description: 'Connect to the local Web Picker daemon, register this session, claim the picker, and report any pending requests.',
+    description: 'Connect to the local Web Picker daemon, register this session, claim the picker, and report any pending requests. This is a snapshot; call watch_web_requests to wait for new picks or list_web_requests to read the queue.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {

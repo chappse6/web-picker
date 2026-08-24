@@ -1,50 +1,59 @@
-# Three-minute submission video script
+# 제출 영상 대본 (3분 제한)
 
-Hard limit: 3:00. Record at 1080p with browser, terminal, and editor text large enough to read. Do not show home-directory tokens or captured sensitive values.
+1080p로 녹화하고 브라우저·터미널·에디터 글자를 읽을 수 있게 키운다. 홈 디렉터리 토큰이나 캡처된 민감값은 화면에 남기지 않는다.
 
-## 0:00-0:20 - Problem and value
+발화량 기준: 아래 나레이션은 약 730자다. 한국어 시연 나레이션은 분당 300~330자로 읽히므로 순수 발화가 약 2분 20초다. 남은 40초가 에이전트 대기·전환용 여유다. 문장을 늘리면 3분을 넘긴다.
 
-**Picture:** Demo page with three identical `저장` buttons, then Web Picker badge.
+## 0:00-0:15 — 인사와 한 줄 정의
 
-**Narration:** “UI 수정 요청은 ‘그 저장 버튼’이라는 말만으로 대상을 잃기 쉽습니다. Web Picker는 localhost 화면에서 요소를 직접 고르고, 개인정보를 줄인 위치 증거와 요청을 기존 MCP 코딩 에이전트에 넘기는 로컬 오픈소스 도구입니다.”
+**화면:** 데모 페이지. 문구가 똑같은 `저장` 버튼 세 개.
 
-## 0:20-0:55 - Pick the decoy target
+**나레이션:** "픽앤코드 팀 박세은입니다. Web Picker는 localhost 화면에서 고칠 요소를 직접 클릭해, 그 요소를 지목하는 근거와 요청을 MCP 코딩 에이전트에 넘기는 로컬 오픈소스 도구입니다."
 
-**Picture:** Click `픽` -> `요소 선택`; hover header, profile card, footer buttons; choose profile-card button; enter `이 버튼을 파란색으로`.
+## 0:15-0:35 — 문제
 
-**Narration:** “세 버튼의 보이는 문구는 모두 같습니다. 프로필 카드 안 버튼을 고르면 콘텐츠 스크립트가 실제 렌더링 DOM에서 필요한 문맥만 수집합니다.”
+**화면:** 세 버튼에 차례로 마우스를 올린다.
 
-## 0:55-1:20 - Masking and locator confidence
+**나레이션:** "요즘은 개발자가 아니어도 AI로 화면을 고칩니다. 그런데 이 세 버튼은 보이는 문구가 모두 `저장`입니다. '그 저장 버튼'이라고 말해도 대상이 특정되지 않고, 비개발자는 이걸 말로 설명하는 데 시간을 씁니다."
 
-**Picture:** Show captured detail: masked text/value policy, `#profile-save`, match count 1, high confidence, landmark.
+## 0:35-1:10 — 일반 모드: 에이전트 없이 복사
 
-**Narration:** “입력값, 이메일, 토큰 모양 문자열은 보내지 않습니다. 안전한 ID, test ID, ARIA, landmark, 구조 경로를 순위화하고 실제 match count를 기록합니다. 이 대상은 고유 ID로 high confidence입니다.”
+**화면:** 칩 오른쪽 점이 **빨강**인 것을 짚는다. 픽 버튼 클릭 → 프로필 카드 안의 버튼 선택 → `이 버튼을 파란색으로` 입력 → `복사` → CLI에 붙여넣기.
 
-## 1:20-1:55 - MCP pull and source change
+**나레이션:** "오른쪽 점이 빨강이면 아직 붙은 에이전트가 없다는 뜻입니다. 이 상태에서도 됩니다. 픽 버튼을 누르고 요소를 고른 뒤 요청을 적고 복사를 누르면, 개인정보를 지운 요청문이 클립보드에 담깁니다. 그대로 쓰던 CLI에 붙여넣으면 됩니다. 여기까지가 설치 없이 쓰는 일반 모드입니다."
 
-**Picture:** Agent calls `connect_web_picker`, `list_web_requests`, and `get_web_request`; editor opens the matching demo source and changes button color.
+## 1:10-1:45 — MCP 연결과 큐
 
-**Narration:** “MCP stdio adapter가 로컬 daemon을 시작하거나 재사용합니다. 에이전트는 토큰 인증 IPC로 요청을 가져오고, locator 근거를 확인한 뒤 저장소 코드를 수정합니다. Web Picker 자체는 모델을 호출하거나 코드를 자동 변경하지 않습니다.”
+**화면:** CLI에 "웹피커 연결해줘" 입력 → `connect_web_picker` 호출이 화면에 보이게 → 점이 **초록**으로 바뀜 → 요소 3개를 연달아 픽 → 오른쪽 대기 숫자가 올라감.
 
-## 1:55-2:15 - Refresh and result
+**나레이션:** "설치하고 MCP로 연결하면 붙는 방식이 달라집니다. 에이전트에게 연결을 시키면 점이 초록으로 바뀝니다. 이제 고칠 곳을 요청할 때마다 에이전트를 오갈 필요 없이, 화면에서 계속 담기만 하면 오른쪽에 대기 건수가 쌓입니다."
 
-**Picture:** Refresh page; show blue profile button; call `resolve_web_request`.
+## 1:45-2:20 — 일괄 처리와 반영
 
-**Narration:** “새로고침하면 선택한 프로필 버튼만 바뀝니다. 완료 요청은 resolve 처리되어 여러 에이전트 세션 사이에서도 상태가 분명합니다.”
+**화면:** CLI에 "웹피커 처리해줘" → `list_web_requests`, `get_web_request`로 큐를 읽고 저장소 코드를 수정 → `resolve_web_request` → 칩이 새로고침 버튼으로 바뀜 → 버튼 클릭 → 고른 버튼만 파랗게 바뀐 화면.
 
-## 2:15-2:35 - Daemon restart recovery
+**나레이션:** "모아 담은 뒤 한 번에 처리시킵니다. 에이전트는 큐를 읽고 근거를 확인한 다음 저장소 코드를 고칩니다. Web Picker 자체는 모델을 호출하지도, 코드를 임의로 바꾸지도 않습니다. 처리가 끝나면 그 자리가 새로고침 버튼으로 바뀌고, 누르면 고른 버튼만 바뀐 걸 확인할 수 있습니다."
 
-**Picture:** Submit another request, stop/restart daemon or adapter, reconnect, list recovered pending request.
+## 2:20-2:40 — 근거: 마스킹과 대상 지목
 
-**Narration:** “큐는 mode 0600 파일에 flush 후 원자적 rename으로 저장됩니다. daemon을 재시작해도 미완료 요청은 남고, 이전 세션 소유권은 제거되어 다시 처리할 수 있습니다.”
+**화면:** 캡처 상세. 마스킹 정책, `#profile-save`, match count 1, confidence high. 이어서 벤치마크 표.
 
-## 2:35-3:00 - Evidence and close
+**나레이션:** "핵심은 무엇을 보내는가입니다. 입력값과 이메일, 토큰 모양 문자열은 보내지 않고, 대상을 찾을 안전한 ID와 ARIA, landmark, 구조 경로만 순위를 매겨 보냅니다. 고정 fixture 30개에서 문구만 넘길 때는 50%, Web Picker 근거로는 80%가 맞았고, 문구가 겹치는 구간에서는 0% 대 86.67%였습니다."
 
-**Picture:** Benchmark summary, `npm test`, SBOM/dependency docs, MIT license; end card with verified public repository URL after publication.
+## 2:40-3:00 — 오픈소스와 마무리
 
-**Narration:** “30개 고정 fixture에서 text-only 50%, Web Picker locator 80%, 모호한 label 구간은 0% 대 86.67%였습니다. daemon은 127.0.0.1과 고정 extension origin, IPC token을 사용합니다. MIT 라이선스와 CycloneDX SBOM을 제공합니다. 공개 저장소 주소는 제출 전 최종 화면에 삽입합니다.”
+**화면:** MIT 라이선스, SBOM, `npm test` 통과, 저장소 주소 엔드카드.
 
-## Recording blockers
+**나레이션:** "daemon은 127.0.0.1에만 바인딩되고 확장 origin과 IPC 토큰으로 막습니다. 클라우드도 계정도 API 키도 쓰지 않습니다. MIT 라이선스로 공개하고 CycloneDX SBOM을 함께 제공합니다. 설치는 스크립트 한 줄입니다. 감사합니다."
 
-- Public repository URL: **unresolved - repository has no configured remote; publish only with owner authorization.**
-- YouTube URL: **unresolved - record, upload, and verify after final build; do not invent a URL.**
+## 녹화 주의
+
+- **CLI 창을 닫지 말 것.** 세션은 MCP 어댑터의 heartbeat로 유지되고, 끊기면 30초 안에 자동 해제된다. 해제되면 점이 빨강으로 돌아가고 대기 배지와 새로고침 버튼도 사라진다. 큐를 쌓아 둔 채 CLI를 닫고 다시 열면 화면이 초기 상태처럼 보인다.
+- 시연에 쓰는 에이전트는 화면에 보이는 제품명을 그대로 말한다. 다른 에이전트 호환은 MCP 표준과 에이전트 중립 도구 이름이 근거이므로, "MCP를 지원하는 에이전트라면 동작합니다"까지만 말하고 검증하지 않은 제품을 단정하지 않는다.
+- **과장 금지:** 벤치마크의 unique-label 구간은 문구만 넘기는 쪽이 100%, Web Picker가 73.33%다. "항상 더 정확하다"고 말하면 표와 어긋난다. 이득은 "문구가 겹쳐 대상이 모호한 경우"로 한정해 말한다.
+- 확장은 최신 브랜치를 로드한 상태로 녹화한다. 예전 빌드는 픽 버튼과 오른쪽 상태 점 동작이 다르다.
+
+## 남은 확인 항목
+
+- 저장소 공개 여부: `https://github.com/chappse6/web-picker`가 외부에서 열리는지 확인하고 엔드카드에 넣는다.
+- YouTube URL: 녹화·업로드 후 실제 주소를 확인해 결과보고서에 반영한다. 길이 3분 이하인지 재확인.
