@@ -17,7 +17,8 @@
     "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",
     "test:watch": "vitest",
-    "sbom": "node scripts/generate-sbom.mjs"
+    "sbom": "node scripts/generate-sbom.mjs",
+    "report:pdf": "python3 scripts/restyle-result-report-fonts.py artifacts/web-picker-result-report.docx artifacts/web-picker-result-report.docx --pdf"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

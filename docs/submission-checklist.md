@@ -28,9 +28,9 @@ Official evidence: [contest overview and report template](https://osscontest.kr/
 
 ## Submission identity and URLs - blocking
 
-- [ ] Confirm team count against contest registration.
+- [x] Confirm team count against contest registration. **1명, 팀장 박세은, 팀명 픽앤코드.**
 - [ ] Confirm student/general division against contest registration.
-- [ ] Confirm free/designated task type against contest registration.
+- [x] Confirm free/designated task type against contest registration. **자유과제/기타.**
 - [ ] Public repository URL resolves. **Blocked:** this checkout has no configured Git remote; publication is an external action requiring owner authorization.
 - [ ] YouTube demo URL resolves and video length is at most three minutes. **Blocked:** no final recording/upload exists; upload is an external action requiring owner-provided media and authorization.
 - [ ] Replace repository/video placeholders in DOCX and regenerate matching PDF after URLs resolve.
