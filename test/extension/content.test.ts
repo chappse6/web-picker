@@ -170,16 +170,26 @@ it('keeps the minimized chip to brand + connection + queue and locks the pick', 
 
   fab.click();
   expect(document.documentElement.classList.contains('wp-picking')).toBe(false);
-  document.querySelector<HTMLElement>('#wp-pick')!.click();
+  const pick = document.querySelector<HTMLElement>('#wp-pick')!;
+  pick.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+  pick.click();
   expect(document.documentElement.classList.contains('wp-picking')).toBe(true);
 
   const target = document.getElementById('profile-save')!;
+  Object.defineProperty(target, 'getBoundingClientRect', {
+    value: () => ({ top: 80, bottom: 120, left: 24, right: 140, width: 116, height: 40, x: 24, y: 80, toJSON() {} }),
+  });
   target.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
   target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
   await vi.waitFor(() => {
     expect(document.querySelector('#wp-highlight')?.classList.contains('wp-locked')).toBe(true);
     expect(document.querySelector('#wp-q')).not.toBeNull();
+  });
+  await vi.waitFor(() => {
+    const composer = document.querySelector<HTMLElement>('#wp-panel');
+    expect(composer?.style.left).toBeTruthy();
+    expect(composer?.style.top).toBeTruthy();
   });
   expect(document.documentElement.textContent).not.toContain('localhost 허용');
   expect(document.documentElement.textContent).not.toContain('텍스트·HTML 기본 마스킹');

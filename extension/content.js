@@ -101,6 +101,7 @@
 
     fab.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
+      if (hud.isActionTarget(e.target)) return;
       const r = fab.getBoundingClientRect();
       pointer.id = e.pointerId;
       pointer.sx = e.clientX;
@@ -183,8 +184,9 @@
 
   function placePanel() {
     if (!panel) return;
+    const anchor = selected || highlight || fab;
     const pos = hud.panelAnchor(
-      fab.getBoundingClientRect(),
+      anchor.getBoundingClientRect(),
       panel.offsetWidth || 280,
       panel.offsetHeight || 160,
       innerWidth,

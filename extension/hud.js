@@ -95,9 +95,15 @@ export function savePos(pos, storage = globalThis.localStorage) {
   storage?.setItem(HUD_POS_KEY, JSON.stringify({ left: pos.left, top: pos.top }));
 }
 
+export const ACTION_IDS = ['wp-pick', 'wp-dot', 'wp-reload'];
+
 export function isChromeTarget(el, ids = []) {
   if (!el || typeof el.closest !== 'function') return false;
   return ids.some((id) => el.id === id || Boolean(el.closest(`#${id}`)));
+}
+
+export function isActionTarget(el) {
+  return isChromeTarget(el, ACTION_IDS);
 }
 
 export function dragThresholdExceeded(dx, dy, threshold = DRAG_THRESHOLD_PX) {
@@ -156,11 +162,17 @@ export function applyChipStatus(root, state) {
   root.setAttribute('aria-label', title);
 }
 
-export function panelAnchor(chipRect, panelWidth, panelHeight, vw, vh) {
+export function panelAnchor(anchorRect, panelWidth, panelHeight, vw, vh, pad = 8) {
   const pw = panelWidth || 280;
   const ph = panelHeight || 160;
-  const above = chipRect.top - ph - 10;
-  const top = above >= 8 ? above : chipRect.bottom + 10;
-  const left = chipRect.left;
-  return clampPos(left, top, pw, ph, vw, vh);
+  const gap = 10;
+  const viewH = Math.max(0, Number(vh) || 0);
+  const spaceAbove = (Number(anchorRect?.top) || 0) - pad;
+  const spaceBelow = viewH - (Number(anchorRect?.bottom) || 0) - pad;
+  const preferAbove = spaceAbove >= ph + gap || spaceAbove > spaceBelow;
+  const top = preferAbove
+    ? (Number(anchorRect?.top) || 0) - ph - gap
+    : (Number(anchorRect?.bottom) || 0) + gap;
+  const left = Number(anchorRect?.left) || 0;
+  return clampPos(left, top, pw, ph, vw, vh, pad);
 }

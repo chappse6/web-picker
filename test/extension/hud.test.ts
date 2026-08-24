@@ -10,6 +10,7 @@ import {
   dragThresholdExceeded,
   HUD_POS_KEY,
   inflightCount,
+  isActionTarget,
   isChromeTarget,
   loadPos,
   panelAnchor,
@@ -112,9 +113,15 @@ describe('drag geometry', () => {
     expect(defaultPos(120, 36, 400, 300)).toEqual({ left: 16, top: 248 });
   });
 
-  it('anchors the composer from the chip left edge', () => {
+  it('places the composer above the selection when there is room', () => {
     const pos = panelAnchor({ top: 220, bottom: 256, left: 16, right: 140 }, 280, 140, 400, 400);
     expect(pos.top).toBe(70);
+    expect(pos.left).toBe(16);
+  });
+
+  it('places the composer below the selection when the top has no room', () => {
+    const pos = panelAnchor({ top: 20, bottom: 50, left: 16, right: 80 }, 280, 160, 400, 400);
+    expect(pos.top).toBe(60);
     expect(pos.left).toBe(16);
   });
 
@@ -142,5 +149,8 @@ describe('chrome hit-test', () => {
     document.body.innerHTML = '<div id="wp-fab"><span class="wp-brand">webpicker</span></div><button id="page">x</button>';
     expect(isChromeTarget(document.querySelector('.wp-brand'), ['wp-fab'])).toBe(true);
     expect(isChromeTarget(document.getElementById('page'), ['wp-fab'])).toBe(false);
+    document.body.innerHTML = '<div id="wp-fab"><span id="wp-pick">pick</span><span class="wp-brand">webpicker</span></div>';
+    expect(isActionTarget(document.getElementById('wp-pick'))).toBe(true);
+    expect(isActionTarget(document.querySelector('.wp-brand'))).toBe(false);
   });
 });
