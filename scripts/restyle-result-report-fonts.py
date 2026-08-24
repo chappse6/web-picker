@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
+import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
@@ -106,10 +107,33 @@ def restyle(src: Path, dest: Path) -> None:
                     out.write(path, path.relative_to(root).as_posix())
 
 
+def export_pdf(docx: Path, pdf: Path) -> None:
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice:
+        raise SystemExit("LibreOffice (soffice) is required to export a matching PDF")
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(
+            [soffice, "--headless", "--nologo", "--nolockcheck", "--convert-to", "pdf", "--outdir", tmp, str(docx)],
+            check=True,
+        )
+        produced = Path(tmp) / f"{docx.stem}.pdf"
+        if not produced.exists():
+            raise SystemExit(f"LibreOffice did not write {produced.name}")
+        pdf.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(produced, pdf)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("src")
     parser.add_argument("dest")
+    parser.add_argument(
+        "--pdf",
+        nargs="?",
+        const="__auto__",
+        default=None,
+        help="also write a matching PDF (default path: dest with .pdf)",
+    )
     args = parser.parse_args()
     src = Path(args.src)
     dest = Path(args.dest)
@@ -120,6 +144,9 @@ def main() -> None:
         backup.unlink()
     else:
         restyle(src, dest)
+    if args.pdf is not None:
+        pdf = dest.with_suffix(".pdf") if args.pdf == "__auto__" else Path(args.pdf)
+        export_pdf(dest, pdf)
 
 
 if __name__ == "__main__":
