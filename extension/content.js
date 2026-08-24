@@ -17,6 +17,7 @@
   const { capturePayload } = await import(url('capture.js'));
   const { runtimeErrorGuidance } = await import(url('error-guidance.js'));
   const hud = await import(url('hud.js'));
+  const share = await import(url('share.js'));
 
   async function send(type, payload) {
     const response = await chrome.runtime.sendMessage({ type, payload });
@@ -37,8 +38,7 @@
   let panel = null;
   let highlight = null;
   let selected = null;
-  let lastConnected = null;
-  let lastGuidance = null;
+  let lastAgentLive = false;
   let suppressClick = false;
   const reloadTracker = hud.createReloadTracker();
 
@@ -156,10 +156,6 @@
       closePanel();
       return;
     }
-    if (lastConnected === false) {
-      renderError();
-      return;
-    }
     startPick();
   }
 
@@ -216,8 +212,7 @@
     if (!fab.isConnected) return false;
     try {
       const s = await send('web-picker:get-status');
-      lastConnected = true;
-      lastGuidance = null;
+      lastAgentLive = Boolean(s?.activeSessionId);
       const readyToReload = reloadTracker.apply(s);
       hud.applyChipStatus(fab, { ...hud.connectionState({ ok: true, status: s }), readyToReload });
       if (panel?.dataset.wpState === 'error') {
@@ -226,21 +221,10 @@
       }
       return true;
     } catch (error) {
-      lastConnected = false;
-      lastGuidance = runtimeErrorGuidance(error?.code);
+      lastAgentLive = false;
       hud.applyChipStatus(fab, hud.connectionState({ ok: false }));
       return false;
     }
-  }
-
-  function renderError() {
-    const guidance = lastGuidance || runtimeErrorGuidance('daemon-unavailable');
-    ensurePanel();
-    panel.dataset.wpState = 'error';
-    panel.innerHTML =
-      header('webpicker') +
-      `<div class="wp-bd">${stateCard(guidance.title, guidance.note, '#f04438')}</div>`;
-    wireCommon();
   }
 
   function stateCard(title, note, color) {
@@ -316,15 +300,17 @@
     highlight?.classList.add('wp-locked');
     const cap = capturePayload(el, { userQuestion: '' }).element;
     const dims = `${Math.round(cap.rect.width)}×${Math.round(cap.rect.height)}`;
+    const mcpMode = share.isMcpMode({ agentLive: lastAgentLive });
     ensurePanel();
     delete panel.dataset.wpState;
     panel.innerHTML =
       header(`${escapeHtml(cap.selector)} · ${dims}`) +
       `<div class="wp-bd">
         <textarea class="wp-ta" id="wp-q" placeholder="이 요소를 어떻게 고칠까요?"></textarea>
+        ${mcpMode ? '' : '<p class="wp-note" id="wp-mode-hint" style="margin:8px 0 0;color:#667085">MCP 미연결 · 보내면 마스킹된 요청이 클립보드에 복사됩니다.</p>'}
         <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
           <button class="wp-link" id="wp-again" type="button">다시 선택</button>
-          <button class="wp-btn wp-btn-pri" id="wp-send" type="button" style="flex:1">보내기</button>
+          <button class="wp-btn wp-btn-pri" id="wp-send" type="button" style="flex:1">${share.submitLabel(mcpMode)}</button>
         </div>
         <div id="wp-status"></div>
       </div>`;
@@ -338,9 +324,17 @@
     const q = panel.querySelector('#wp-q').value.trim();
     if (!q) return setStatus('수정 요청을 입력하세요.', 'err');
     if (!selected) return setStatus('선택된 요소가 없습니다.', 'err');
-    setStatus('보내는 중…', null);
+    const mcpMode = share.isMcpMode({ agentLive: lastAgentLive });
+    setStatus(mcpMode ? '보내는 중…' : '복사하는 중…', null);
     try {
       const payload = capturePayload(selected, { userQuestion: q });
+      if (!mcpMode) {
+        const copied = await share.copyText(share.formatClipboardPrompt(payload));
+        if (!copied) return setStatus('클립보드에 복사하지 못했습니다.', 'err');
+        selected = null;
+        renderCopied();
+        return;
+      }
       const res = await send('web-picker:create-request', payload);
       selected = null;
       reloadTracker.noteSubmit();
@@ -350,6 +344,24 @@
       const guidance = runtimeErrorGuidance(error?.code);
       showStateCard(guidance.title, guidance.note, '#f04438');
     }
+  }
+
+  function renderCopied() {
+    ensurePanel();
+    delete panel.dataset.wpState;
+    panel.innerHTML =
+      header('webpicker') +
+      `<div class="wp-bd wp-succ">
+        <div class="wp-succ-icon">${ICON_CHECK}</div>
+        <div class="wp-succ-title">클립보드에 복사했습니다</div>
+        <p class="wp-note" style="color:#667085;margin:0 0 14px">일반 채팅에 붙여넣으면 됩니다. 개인정보는 마스킹되어 있습니다.</p>
+        <button class="wp-btn wp-btn-pri" id="wp-new" type="button" style="width:100%">새 요청</button>
+      </div>`;
+    wireCommon();
+    panel.querySelector('#wp-new').addEventListener('click', () => {
+      closePanel();
+      startPick();
+    });
   }
 
   function renderSuccess() {

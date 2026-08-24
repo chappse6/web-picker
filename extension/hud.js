@@ -143,7 +143,7 @@ export function applyChipStatus(root, state) {
   }
   if (reload) reload.hidden = !showReload;
 
-  const conn = !connected ? '연결 안 됨' : agentLive ? '에이전트 연결됨' : '연결됨';
+  const conn = !connected ? '일반 모드' : agentLive ? '에이전트 연결됨' : '연결됨 · 일반 모드';
   const extra = label ? ` · 대기 ${inflight}` : showReload ? ' · 완료 · 새로고침' : '';
   const title = `${BRAND} · ${conn}${extra}`;
   root.title = title;

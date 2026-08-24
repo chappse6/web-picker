@@ -81,6 +81,14 @@ describe('chip status', () => {
     expect(fab.title).toContain('새로고침');
   });
 
+  it('labels a reachable daemon without an agent as general mode', () => {
+    document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
+    const fab = document.getElementById('wp-fab')!;
+    applyChipStatus(fab, { connected: true, pending: 0, agentLive: false });
+    expect(fab.title).toContain('일반 모드');
+    expect(fab.querySelector('#wp-pick')!.hidden).toBe(false);
+  });
+
   it('uses a red dot and hides the badge when disconnected', () => {
     document.body.innerHTML = `<button id="wp-fab">${chipInnerHTML()}</button>`;
     const fab = document.getElementById('wp-fab')!;
@@ -89,7 +97,7 @@ describe('chip status', () => {
     expect(fab.querySelector('#wp-qbadge')!.hidden).toBe(true);
     expect(fab.querySelector('#wp-pick')!.hidden).toBe(true);
     expect(fab.querySelector('#wp-dot')!.hidden).toBe(false);
-    expect(fab.title).toContain('연결 안 됨');
+    expect(fab.title).toContain('일반 모드');
   });
 });
 

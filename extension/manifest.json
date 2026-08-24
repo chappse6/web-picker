@@ -27,7 +27,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["config.js", "styles.js", "pick.js", "capture.js", "error-guidance.js", "hud.js"],
+      "resources": ["config.js", "styles.js", "pick.js", "capture.js", "error-guidance.js", "hud.js", "share.js"],
       "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://*.localhost/*"]
     }
   ]

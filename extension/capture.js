@@ -31,6 +31,17 @@ const VALUE_LIKE = [
   /[A-Za-z0-9_-]{20,}/, // token / hash / api key
 ];
 
+/** Replace email / phone / token shapes in free text with bullet masks. */
+export function maskPiiInText(text) {
+  let out = String(text || '');
+  if (!out) return '';
+  for (const re of VALUE_LIKE) {
+    const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`;
+    out = out.replace(new RegExp(re.source, flags), (match) => maskShape(match));
+  }
+  return out;
+}
+
 function collapse(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
