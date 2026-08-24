@@ -30,6 +30,7 @@
     "start": "node dist/daemon/daemon.js",
     "test": "vitest run",
     "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
+    "test:e2e:offline": "vitest run test/e2e/chrome-offline-copy.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",
     "test:watch": "vitest",
     "sbom": "node scripts/generate-sbom.mjs"
