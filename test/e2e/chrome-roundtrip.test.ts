@@ -106,7 +106,6 @@ describe('real Chrome extension to MCP round trip', () => {
 
     await page.locator('#email').fill(SENSITIVE_EMAIL);
     await page.locator('#bio').fill(SENSITIVE_TOKEN);
-    await page.locator('#wp-fab').click();
     await page.locator('#wp-pick').click();
     await page.locator('#profile-save').click();
     await page.locator('#wp-q').fill('이 버튼을 파란색으로');

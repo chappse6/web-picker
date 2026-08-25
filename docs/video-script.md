@@ -10,7 +10,7 @@ Hard limit: 3:00. Record at 1080p with browser, terminal, and editor text large 
 
 ## 0:20-0:55 - Pick the decoy target
 
-**Picture:** Click `픽` -> `요소 선택`; hover header, profile card, footer buttons; choose profile-card button; enter `이 버튼을 파란색으로`.
+**Picture:** Click the `webpicker` chip; hover header, profile card, footer buttons; choose profile-card button; enter `이 버튼을 파란색으로`. The chip keeps the brand, a green/red connection dot, and a queued-count badge.
 
 **Narration:** “세 버튼의 보이는 문구는 모두 같습니다. 프로필 카드 안 버튼을 고르면 콘텐츠 스크립트가 실제 렌더링 DOM에서 필요한 문맥만 수집합니다.”
 

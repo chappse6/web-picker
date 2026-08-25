@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { captureElement, capturePayload, generateLocatorEvidence, maskShape } from '../../extension/capture.js';
+import { captureElement, capturePayload, generateLocatorEvidence, maskPiiInText, maskShape } from '../../extension/capture.js';
 
 function setDom() {
   document.body.innerHTML = `
@@ -25,6 +25,17 @@ describe('maskShape', () => {
     expect(maskShape('저장하기')).toBe('••••');
     expect(maskShape('hi there')).toBe('•• •••••');
     expect(maskShape('')).toBe('');
+  });
+});
+
+describe('maskPiiInText', () => {
+  it('masks email, phone, and token shapes while keeping the rest', () => {
+    const out = maskPiiInText('연락은 owner@example.com 또는 010-1234-5678, 토큰 tok_abcdefghijklmnopqrstuvwxyz');
+    expect(out).not.toContain('owner@example.com');
+    expect(out).not.toContain('010-1234-5678');
+    expect(out).not.toContain('tok_abcdefghijklmnopqrstuvwxyz');
+    expect(out).toContain('연락은');
+    expect(out).toContain('또는');
   });
 });
 
