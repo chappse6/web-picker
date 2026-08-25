@@ -46,5 +46,5 @@ Hard limit: 3:00. Record at 1080p with browser, terminal, and editor text large 
 
 ## Recording blockers
 
-- Public repository URL: **unresolved - repository has no configured remote; publish only with owner authorization.**
-- YouTube URL: **unresolved - record, upload, and verify after final build; do not invent a URL.**
+- Public repository URL: **https://github.com/chappse6/web-picker**
+- YouTube URL: **https://youtu.be/ZYcI42mq5YM**

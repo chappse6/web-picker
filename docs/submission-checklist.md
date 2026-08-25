@@ -31,9 +31,9 @@ Official evidence: [contest overview and report template](https://osscontest.kr/
 - [ ] Confirm team count against contest registration.
 - [ ] Confirm student/general division against contest registration.
 - [ ] Confirm free/designated task type against contest registration.
-- [ ] Public repository URL resolves. **Blocked:** this checkout has no configured Git remote; publication is an external action requiring owner authorization.
-- [ ] YouTube demo URL resolves and video length is at most three minutes. **Blocked:** no final recording/upload exists; upload is an external action requiring owner-provided media and authorization.
-- [ ] Replace repository/video placeholders in DOCX and regenerate matching PDF after URLs resolve.
+- [x] Public repository URL resolves: https://github.com/chappse6/web-picker
+- [x] YouTube demo URL resolves and video length is at most three minutes: https://youtu.be/ZYcI42mq5YM
+- [x] Replace repository/video placeholders in DOCX and regenerate matching PDF after URLs resolve.
 
 ## Final upload
 
