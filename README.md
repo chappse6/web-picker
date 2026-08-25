@@ -39,24 +39,23 @@ never leaking sensitive values.
 
 ## Install
 
+One command (macOS / Linux):
+
 ```bash
-./bootstrap.sh          # macOS/Linux  (installs deps + builds)
-# or
-pwsh ./bootstrap.ps1    # Windows
+curl -fsSL https://raw.githubusercontent.com/chappse6/web-picker/master/install.sh | bash
 ```
 
-Then:
+That clones into `~/web-picker`, installs, builds, registers MCP, and opens a
+dedicated Chrome window with the extension already loaded. Chrome blocks silent
+install into your everyday profile; to keep it in normal Chrome, **Load unpacked**
+once → `~/web-picker/extension`.
 
-1. **Load the Chrome extension**
-   `chrome://extensions` → enable **Developer mode** → **Load unpacked** →
-   select the `extension/` folder.
+Already cloned?
 
-2. **Register the MCP server** with your agent:
-   ```bash
-   ./scripts/register-claude-code.sh   # Claude Code
-   ./scripts/register-codex.sh         # Codex
-   ```
-   Both point the agent at `scripts/run.cjs`, which lazily starts the daemon.
+```bash
+./install.sh            # macOS/Linux
+pwsh ./bootstrap.ps1    # Windows
+```
 
 ## Five-minute judge path (no keys, no accounts)
 
@@ -81,10 +80,12 @@ is needed.
    (Install step 2).
 
 4. **Pick an element**
-   - Click the **픽** button (bottom-right) → **요소 선택**.
+   - Click the **webpicker** chip (bottom-right; drag it if it covers the target).
    - Hover the **main area's 저장 button** (inside the profile card) and click it.
    - Type a request, e.g. `이 버튼을 파란색으로`, and click **보내기**.
    - You should see `요청을 큐에 보냈습니다`.
+   - The chip keeps a green/red connection dot. When requests are waiting, the
+     pending count appears in a green circle.
 
 5. **Pull it from the agent**
    In a Claude Code / Codex session:

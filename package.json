@@ -3,6 +3,20 @@
   "version": "0.1.0",
   "description": "localhost element picker that bridges browser element picks to MCP coding agents",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chappse6/web-picker.git"
+  },
+  "homepage": "https://github.com/chappse6/web-picker#readme",
+  "bugs": {
+    "url": "https://github.com/chappse6/web-picker/issues"
+  },
+  "keywords": [
+    "mcp",
+    "chrome-extension",
+    "localhost",
+    "coding-agent"
+  ],
   "type": "module",
   "imports": {
     "#web-picker-capture": "./extension/capture.js"
@@ -13,6 +27,7 @@
   "scripts": {
     "build": "tsc && tsc -p tsconfig.benchmark.json",
     "benchmark": "npm run build && node dist/benchmark/run.js",
+    "start": "node dist/daemon/daemon.js",
     "test": "vitest run",
     "test:e2e": "vitest run test/e2e/chrome-roundtrip.test.ts --testTimeout=60000",
     "test:mcp": "vitest run test/mcp-stdio.test.ts",

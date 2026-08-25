@@ -46,4 +46,21 @@ describe('createPicker', () => {
     document.getElementById('b')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     expect(picked).toBe(false);
   });
+
+  it('does not consume clicks on ignored overlay chrome', () => {
+    document.body.innerHTML += '<button id="wp-fab">webpicker</button>';
+    let picked: Element | null = null;
+    const picker = createPicker(document, {
+      onPick: (el) => { picked = el; },
+      ignore: (el) => (el as Element).id === 'wp-fab' || Boolean((el as Element).closest?.('#wp-fab')),
+    });
+    picker.start();
+    const chrome = document.getElementById('wp-fab')!;
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+    chrome.dispatchEvent(ev);
+    expect(picked).toBeNull();
+    expect(ev.defaultPrevented).toBe(false);
+    expect(picker.isActive()).toBe(true);
+    picker.stop();
+  });
 });

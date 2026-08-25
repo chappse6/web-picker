@@ -11,7 +11,7 @@ import type { State } from './state.js';
 import { DEFAULT_PORT } from './state.js';
 import type { ApiHandler, ApiRequest, Logger } from './http.js';
 import { HttpInputError, silentLogger } from './http.js';
-import { createExtensionApi } from './extension-api.js';
+import { createExtensionApi, originAllowed } from './extension-api.js';
 import { createIpcApi } from './ipc-api.js';
 
 export interface ServerDeps {
@@ -119,7 +119,7 @@ export function createServer(deps: ServerDeps): RunningServer {
         const requestOrigin = Array.isArray(rawReq.headers.origin)
           ? rawReq.headers.origin[0]
           : rawReq.headers.origin;
-        rawRes.writeHead(requestOrigin === deps.expectedExtensionOrigin ? 204 : 403, corsHeaders);
+        rawRes.writeHead(originAllowed(requestOrigin, deps.expectedExtensionOrigin) ? 204 : 403, corsHeaders);
         rawRes.end();
         return;
       }

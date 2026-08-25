@@ -19,8 +19,14 @@ function json(status: number, body: unknown): ApiResponse {
   return { status, body };
 }
 
-function originAllowed(req: ApiRequest, expectedExtensionOrigin: string): boolean {
-  return req.headers.origin === expectedExtensionOrigin;
+/**
+ * Pages always send Origin on fetch(). Chrome MV3 service workers (and curl)
+ * often omit it on GET to 127.0.0.1. Treat a missing origin as same-machine,
+ * and only reject a present origin that is not the pinned extension.
+ */
+export function originAllowed(origin: string | undefined, expectedExtensionOrigin: string): boolean {
+  if (origin == null || origin === '') return true;
+  return origin === expectedExtensionOrigin;
 }
 
 export function createExtensionApi(state: State, config: ExtensionApiConfig): ApiHandler {
@@ -31,7 +37,7 @@ export function createExtensionApi(state: State, config: ExtensionApiConfig): Ap
       return json(200, { version: config.version });
     }
 
-    if (!originAllowed(req, config.expectedExtensionOrigin)) {
+    if (!originAllowed(req.headers.origin, config.expectedExtensionOrigin)) {
       return json(403, { error: 'forbidden-origin' });
     }
 
